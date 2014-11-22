@@ -177,7 +177,12 @@ void processCommand()
     return;
   } 
     
-  if (line.startsWith("SETLED")) {
+  if (line == "VALUE") {
+    Port.println(current_state.value);
+    return;
+  }
+
+  if (line.startsWith("SETVALUE")) {
     long value = line.substring(7).toInt();
     if ((value < 0) || (value > 255)) {
       Port.println("ERR"); return;
@@ -186,6 +191,11 @@ void processCommand()
     Port.println("OK");
     return;
   }
+    
+  if (line == "MAX") {
+    Port.println(current_state.maxDim);    
+    return;
+  } 
    
   if (line.startsWith("SETMAX")) {
     long value = line.substring(7).toInt();
@@ -199,6 +209,11 @@ void processCommand()
     return;
   } 
     
+  if (line == "DUR") {
+    Port.println(current_state.dimDur);
+    return;
+  }
+  
   if (line.startsWith("SETDUR")) {
     long value = line.substring(7).toInt();
     if ((value < 1) || (value > 120)) {
