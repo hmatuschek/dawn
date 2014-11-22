@@ -8,6 +8,9 @@
 MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
   QMainWindow(parent), _dawn(dawn)
 {
+  setMinimumSize(320, 240);
+  setWindowTitle(tr("Dawn control"));
+
   QToolBar *toolbar = this->addToolBar(tr("Toolbar"));
   QAction *config = toolbar->addAction(tr("Config"));
   QSlider *bright = new QSlider(Qt::Horizontal);
