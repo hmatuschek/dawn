@@ -3,7 +3,7 @@
 
 
 Dawn::Dawn(const QString &portname, QObject *parent)
-  : QAbstractListModel(parent), _port(portname)
+  : QAbstractTableModel(parent), _port(portname)
 {
   _port.setBaudRate(9600);
   _port.open(QIODevice::ReadWrite);
@@ -65,11 +65,32 @@ Dawn::setValue(uint8_t value) {
   return true;
 }
 
+QDateTime
+Dawn::time() {
+  _port.write("TIME\n");
+  return QDateTime::fromString(_port.readLine(), "yyyy-M-d h:m:s");
+}
+
+bool
+Dawn::setTime() {
+  return setTime(QDateTime::currentDateTime());
+}
+
+bool
+Dawn::setTime(const QDateTime &time) {
+  _port.write(QString("SETTIME %1\n").arg(time.toString("yyyy-M-d h:m:s")).toLocal8Bit());
+  return "OK" == _port.readLine();
+}
 
 
 int
 Dawn::rowCount(const QModelIndex &parent) const {
-  return _alarms.size();
+  return numAlarms();
+}
+
+int
+Dawn::columnCount(const QModelIndex &parent) const {
+  return 3;
 }
 
 Qt::ItemFlags
@@ -81,15 +102,19 @@ Dawn::flags(const QModelIndex &index) const {
 }
 
 QVariant
-Dawn::data(const QModelIndex &index, int role) const {
-  if (index.row() >= _alarms.size()) { QVariant(); }
+Dawn::data(const QModelIndex &index, int role) const
+{
+  if (index.row() >= numAlarms()) { QVariant(); }
+  // Get alarm config
+  Alarm alarm = this->alarm(index.row());
+  // Dispatch
   if (Qt::DisplayRole == role) {
     if (0 == index.column()) {
-      if (_alarms[index.row()].enabled) { return tr("Enabled"); }
+      if (alarm.enabled) { return tr("Enabled"); }
       return tr("Disabled");
     }
     if (1 == index.column()) {
-      switch (_alarms[index.row()].dayOfWeek) {
+      switch (alarm.dayOfWeek) {
       case Dawn::EVERYDAY:  return tr("Every day");
       case Dawn::SUNDAY:    return tr("Sunday");
       case Dawn::MONDAY:    return tr("Monday");
@@ -101,12 +126,12 @@ Dawn::data(const QModelIndex &index, int role) const {
       }
     }
     if (2 == index.column()) {
-      return _alarms[index.row()].time.toString();
+      return alarm.time.toString();
     }
   } else if (Qt::EditRole == role) {
-    if (0 == index.column()) { return _alarms[index.row()].enabled; }
-    if (1 == index.column()) { return int(_alarms[index.row()].dayOfWeek); }
-    if (2 == index.column()) { return _alarms[index.row()].time; }
+    if (0 == index.column()) { return alarm.enabled; }
+    if (1 == index.column()) { return int(alarm.dayOfWeek); }
+    if (2 == index.column()) { return alarm.time; }
   }
   return QVariant();
 }
@@ -115,9 +140,13 @@ bool
 Dawn::setData(const QModelIndex &index, const QVariant &value, int role) {
   if (role != Qt::EditRole) { return false; }
   if (index.column() > 2) { return false; }
-  if (index.row() >= _alarms.size()) { return false; }
-  if (0 == index.column()) { _alarms[index.row()].enabled = value.toBool(); }
-  if (1 == index.column()) { _alarms[index.row()].dayOfWeek = DayOfWeek(value.toUInt()); }
-  if (2 == index.column()) { _alarms[index.row()].time = value.toTime(); }
-  return true;
+  if (index.row() >= numAlarms()) { return false; }
+  // Get current config
+  Alarm alarm = this->alarm(index.row());
+  // Update config
+  if (0 == index.column()) { alarm.enabled = value.toBool(); }
+  if (1 == index.column()) { alarm.dayOfWeek = DayOfWeek(value.toUInt()); }
+  if (2 == index.column()) { alarm.time = value.toTime(); }
+  // Write to device
+  return setAlarm(index.row(), alarm);
 }

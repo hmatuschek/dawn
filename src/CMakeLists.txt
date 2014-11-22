@@ -1,5 +1,7 @@
-set(lampe_SOURCES main.cc portdialog.cc dawn.cc dayofweekdelegate.cc)
-set(lampe_MOC_HEADERS portdialog.hh dawn.hh dayofweekdelegate.hh)
+set(lampe_SOURCES main.cc portdialog.cc dawn.cc dayofweekdelegate.cc timedelegate.cc
+    mainwindow.cc)
+set(lampe_MOC_HEADERS portdialog.hh dawn.hh dayofweekdelegate.hh timedelegate.hh
+    mainwindow.hh)
 qt5_wrap_cpp(lampe_MOC_SOURCES ${lampe_MOC_HEADERS})
 
 set(lampe_HEADERS ${lampe_MOC_HEADERS} )

@@ -1,0 +1,38 @@
+#include "mainwindow.hh"
+#include <QAction>
+#include <QToolBar>
+#include <QTableView>
+#include <QSlider>
+
+
+MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
+  QMainWindow(parent), _dawn(dawn)
+{
+  QToolBar *toolbar = this->addToolBar(tr("Toolbar"));
+  QAction *config = toolbar->addAction(tr("Config"));
+  QSlider *bright = new QSlider(Qt::Horizontal);
+  bright->setMinimum(0);
+  bright->setMaximum(255);
+  toolbar->addWidget(bright);
+  QAction *quit = toolbar->addAction(tr("Quit"));
+
+  QTableView *table = new QTableView();
+  table->setModel(&_dawn);
+  this->setCentralWidget(table);
+
+  QObject::connect(quit, SIGNAL(triggered()), this, SLOT(close()));
+  QObject::connect(config, SIGNAL(triggered()), this, SLOT(onConfig()));
+  QObject::connect(bright, SIGNAL(valueChanged(int)), this, SLOT(onSetBrightness(int)));
+}
+
+
+void
+MainWindow::onConfig() {
+  /// @todo Show config dialog.
+}
+
+void
+MainWindow::onSetBrightness(int value) {
+  value = std::max(0, std::min(value, 255));
+  _dawn.setValue(value);
+}

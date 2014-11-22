@@ -6,21 +6,24 @@
 #include <QVector>
 #include <QTime>
 
-
-class Dawn : public QAbstractListModel
+/** Proxy to the hardware. */
+class Dawn : public QAbstractTableModel
 {
   Q_OBJECT
 
 public:
+  /** Defines the possible alarm selection. */
   typedef enum {
     EVERYDAY, SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY
   } DayOfWeek;
 
+  /** Represents an alarm configuration. */
   typedef struct {
     bool enabled;
     DayOfWeek dayOfWeek;
     QTime time;
   } Alarm;
+
 
 public:
   explicit Dawn(const QString &portname, QObject *parent = 0);
@@ -32,8 +35,13 @@ public:
   uint8_t value();
   bool setValue(uint8_t value);
 
+  QDateTime time();
+  bool setTime();
+  bool setTime(const QDateTime &time);
+
   /* Implementation of QAbstractListModel interface. */
   int rowCount(const QModelIndex &parent) const;
+  int columnCount(const QModelIndex &parent) const;
   QVariant data(const QModelIndex &index, int role) const;
   //QVariant headerData(int section, Qt::Orientation orientation, int role) const;
   Qt::ItemFlags flags(const QModelIndex &index) const;

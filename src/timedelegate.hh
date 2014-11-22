@@ -1,14 +1,15 @@
-#ifndef DAYOFWEEKDELEGATE_HH
-#define DAYOFWEEKDELEGATE_HH
+#ifndef TIMEDELEGATE_HH
+#define TIMEDELEGATE_HH
 
 #include <QItemDelegate>
 
-/** A QListView Delegate to display a drop-down selection for the day-of-week selection. */
-class DayOfWeekDelegate : public QItemDelegate
+
+class TimeDelegate : public QItemDelegate
 {
   Q_OBJECT
+
 public:
-  explicit DayOfWeekDelegate(QObject *parent = 0);
+  explicit TimeDelegate(QWidget *parent = 0);
 
   QWidget *createEditor(
       QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const;
@@ -22,4 +23,4 @@ public:
       QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const;
 };
 
-#endif // DAYOFWEEKDELEGATE_HH
+#endif // TIMEDELEGATE_HH
