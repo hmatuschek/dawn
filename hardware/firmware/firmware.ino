@@ -6,25 +6,36 @@
 #define ledPin  3
 #define Port Serial1
 
+#define N_ALARM (dtNBR_ALARMS-1)
+
 
 typedef struct {
-  byte state;    // 0 - wait, 1 - start dimming, 2 - dimming
-  int value;
+  // 0 - wait, 1 - start dimming, 2 - dimming
+  byte state;    
+  // [0,255] Current value
+  int value;     
+  // Delay between dim-increments in ms
   unsigned long dimDelay;
+  // Next tick for dim-increment
   unsigned long nextDim;
+  // Max value for dimming
   byte maxDim;
+  // Duration of dimming [0, maxDim] in sec.
   byte dimDur;  
 } State;
 
+// The state variable
 static State current_state;
 
+// An alarm configuration
 typedef struct {
   byte flags;
   char hour;
   char minute;
 } AlarmCfg;
 
-static AlarmCfg alarm_cfg[dtNBR_ALARMS];
+// The vector of alarm configurations
+static AlarmCfg alarm_cfg[N_ALARM];
 
 
 void setup() {
@@ -96,7 +107,7 @@ void writeState() {
 void readAlarm() {
   int idx = 2;
   // Iterate over all possible alarms
-  for (int i=0; i<dtNBR_ALARMS; i++) {
+  for (int i=0; i<N_ALARM; i++) {
     // LSB specifies if alarm is enabled
     // (flags>>1) specifies day of week 
     // (All=0, Sun=1, Mon=2, Tue=3, Wen=4, Thu=5, Fri=6, Sat=7)
@@ -109,18 +120,20 @@ void readAlarm() {
 void writeAlarm() {
   int idx = 2;
   // Iterate over all possible alarms
-  for (int i=0; i<dtNBR_ALARMS; i++) {
+  for (int i=0; i<N_ALARM; i++) {
     EEPROM.write(idx, alarm_cfg[i].flags); idx++;
     EEPROM.write(idx, alarm_cfg[i].hour); idx++;
     EEPROM.write(idx, alarm_cfg[i].minute); idx++;
   }
 }
 
-void updateAlarm() {
-  for (int i=0; i<dtNBR_ALARMS; i++) 
+void updateAlarm() 
+{
+  // Reset all alarms
+  for (int i=0; i<dtNBR_ALARMS; i++) { Alarm.free(i); }
+  // Update user configurable alarms  
+  for (int i=0; i<N_ALARM; i++) 
   {
-    // Reset alarm
-    Alarm.free(i);
     // Create one if enabled
     if (alarm_cfg[i].flags & 1) { 
       timeDayOfWeek_t dow = timeDayOfWeek_t(alarm_cfg[i].flags>>1);
@@ -133,6 +146,8 @@ void updateAlarm() {
       }
     }
   }
+  // Register an internal alarm (timer) to update local clock from RTC every hour
+  Alarm.timerRepeat(3600, readRTC);
 }
 
 
@@ -228,13 +243,13 @@ void processCommand()
   
   if (line == "NALARM") {
     // Returns the number of possible alarms
-    Port.println(dtNBR_ALARMS);
+    Port.println(N_ALARM);
     return;
   } 
   
   if (line.startsWith("ALARM")) {
     int idx = line.substring(6).toInt();
-    if ((idx < 0) || (idx>=dtNBR_ALARMS)) {
+    if ((idx < 0) || (idx>=N_ALARM)) {
       Port.println("ERR"); return;
     } 
     Port.print(int(alarm_cfg[idx].flags&1)); Port.print(" ");
@@ -249,7 +264,7 @@ void processCommand()
       
     // Read alarm index
     int idx = line.toInt();
-    if ((idx < 0) || (idx>=dtNBR_ALARMS) || (0==line.length())) {
+    if ((idx < 0) || (idx>=N_ALARM) || (0==line.length())) {
       Port.println("ERR idx"); return;
     }
     line = line.substring(line.indexOf(' ')+1);
