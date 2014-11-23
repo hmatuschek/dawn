@@ -29,8 +29,11 @@ static State current_state;
 
 // An alarm configuration
 typedef struct {
+  // Like enabled, day-of-week
   byte flags;
+  // The alarm hour
   char hour;
+  // The alarm minute
   char minute;
 } AlarmCfg;
 
@@ -48,8 +51,9 @@ void setup() {
   readRTC();
   // Read state and alarms from eeprom
   readState();
-  // Read alarm settings & config timers
+  // Read alarm settings
   readAlarm();
+  // config timers
   updateAlarm();
 }
 
@@ -158,6 +162,7 @@ void readRTC() {
 
 void setRTCTime(int year, int month, int day, int h, int m, int s) {
   // BUG set RTC
+  // Set date-time of local clock
   setTime(year, month, day, h, m, s);
 }
 
@@ -297,9 +302,12 @@ void processCommand()
     alarm_cfg[idx].flags = (dow<<1) | (0 != enabled);
     alarm_cfg[idx].hour  = hour;
     alarm_cfg[idx].minute = minute;
+    // Store alarm config in EEPROM
     writeAlarm();
+    // Update local timers
     updateAlarm();
-    return;
+    // Done
+    Port.println("OK"); return;
   } 
 
   if (line == "TIME") {
@@ -312,6 +320,54 @@ void processCommand()
     return;
   }
   
+  if (line.startsWith("SETTIME")) {
+    line = line.substring(8);
+      
+    // Read year
+    int year = line.toInt();
+    if ((year < 1970) || (0==line.length())) {
+      Port.println("ERR"); return;
+    }
+    line = line.substring(line.indexOf('-')+1);
+
+    // Read month
+    int month = line.toInt();
+    if ((month < 1) || (month > 12) || (0==line.length())) {
+      Port.println("ERR"); return;
+    }
+    line = line.substring(line.indexOf('-')+1);
+    
+    // Read day
+    int day = line.toInt();
+    if ((day < 1) || (day > 31) || (0==line.length())) {
+      Port.println("ERR"); return;
+    }
+    line = line.substring(line.indexOf(' ')+1);
+  
+    // Read hour
+    int hour = line.toInt();
+    if ((hour < 0) || (hour > 23) || (0==line.length())) {
+      Port.println("ERR"); return;
+    }
+    line = line.substring(line.indexOf(':')+1);
+    
+    // Read minute
+    int minute = line.toInt();
+    if ((minute < 0) || (minute > 23) || (0==line.length())) {
+      Port.println("ERR"); return;
+    }
+    line = line.substring(line.indexOf(':')+1);
+    
+    // Read second
+    int second = line.toInt();
+    if ((second < 0) || (second > 23) || (0==line.length())) {
+      Port.println("ERR"); return;
+    }
+  
+    setRTCTime(year, month, day, hour, minute, second);
+    Port.println("OK"); return;
+  }
+   
   if (line == "STAT") {
     Port.print("State "); Port.println(current_state.state);
     Port.print("Value "); Port.println(current_state.value);
