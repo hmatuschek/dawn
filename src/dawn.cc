@@ -60,15 +60,17 @@ Dawn::value() {
 
 bool
 Dawn::setValue(uint8_t value) {
-  _port.write(QString("SETVALUE %1\n").arg(value).toLocal8Bit());
-  if ("OK" != _port.readLine()) { return false; }
-  return true;
+  _port.write("SETVALUE ");
+  _port.write(QByteArray::number(value));
+  _port.write("\n");
+  return "OK" == _port.readLine();
 }
 
 QDateTime
 Dawn::time() {
   _port.write("TIME\n");
-  return QDateTime::fromString(_port.readLine(), "yyyy-M-d h:m:s");
+  return QDateTime::fromString(
+        _port.readLine(), "yyyy-M-d h:m:s");
 }
 
 bool
@@ -78,10 +80,39 @@ Dawn::setTime() {
 
 bool
 Dawn::setTime(const QDateTime &time) {
-  _port.write(QString("SETTIME %1\n").arg(time.toString("yyyy-M-d h:m:s")).toLocal8Bit());
+  _port.write("SETTIME ");
+  _port.write(time.toString("yyyy-M-d h:m:s").toLocal8Bit());
+  _port.write("\n");
   return "OK" == _port.readLine();
 }
 
+uint8_t
+Dawn::maxValue() {
+  _port.write("MAX\n");
+  return _port.readLine().toUInt();
+}
+
+bool
+Dawn::setMaxValue(uint8_t value) {
+  _port.write("SETMAX ");
+  _port.write(QByteArray::number(value));
+  _port.write("\n");
+  return "OK" == _port.readLine();
+}
+
+uint8_t
+Dawn::duration() {
+  _port.write("DUR\n");
+  return _port.readLine().toUInt();
+}
+
+bool
+Dawn::setDuration(uint8_t dur) {
+  _port.write("SETDUR ");
+  _port.write(QByteArray::number(dur));
+  _port.write("\n");
+  return "OK" == _port.readLine();
+}
 
 int
 Dawn::rowCount(const QModelIndex &parent) const {

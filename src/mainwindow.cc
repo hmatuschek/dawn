@@ -3,6 +3,7 @@
 #include <QToolBar>
 #include <QTableView>
 #include <QSlider>
+#include "configdialog.hh"
 
 
 MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
@@ -31,7 +32,7 @@ MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
 
 void
 MainWindow::onConfig() {
-  /// @todo Show config dialog.
+  ConfigDialog(_dawn).exec();
 }
 
 void
