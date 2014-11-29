@@ -25,6 +25,7 @@ ConfigDialog::ConfigDialog(Dawn &dawn, QWidget *parent) :
 
   _timer.setInterval(1000);
   _timer.setSingleShot(false);
+  _timer.start();
 
   QFormLayout *flayout = new QFormLayout();
   flayout->addRow(tr("Date and Time"), dtLayout);

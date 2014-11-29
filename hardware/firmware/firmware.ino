@@ -47,11 +47,11 @@ void setup() {
   // Switch LED off
   analogWrite(ledPin, 0);
   
-  // BUG: Read time & date from RTC
+  // Read time & date from RTC
   readRTC();
-  // Read state and alarms from eeprom
+  // Read state from EEPROM
   readState();
-  // Read alarm settings
+  // Read alarm settings from EEPROM
   readAlarm();
   // config timers
   updateAlarm();
@@ -61,7 +61,7 @@ void setup() {
 void loop() 
 {
   unsigned long current_millis = millis();
-  // receive commend (if there are any)
+  // receive command (if there is any)
   processCommand();
   
   // If start dimming:
@@ -78,12 +78,17 @@ void loop()
   }
   
   analogWrite(ledPin, current_state.value);
+  
+  // trigger alarm routines
+  Alarm.delay(0);
 }
 
 
 // Gets called on alarm
 void alarm_callback() {
-  current_state.state = 1;
+  if (0 == current_state.state) {
+    current_state.state = 1;
+  }
 }
 
 
@@ -141,7 +146,7 @@ void updateAlarm()
     // Create one if enabled
     if (alarm_cfg[i].flags & 1) { 
       timeDayOfWeek_t dow = timeDayOfWeek_t(alarm_cfg[i].flags>>1);
-      if (dowInvalid) { // Invalid means every day
+      if (dowInvalid == dow) { // Invalid means every day
         Alarm.alarmRepeat(
           alarm_cfg[i].hour, alarm_cfg[i].minute, 0, alarm_callback);
       } else { // otherwise a specific day of week
@@ -151,19 +156,18 @@ void updateAlarm()
     }
   }
   // Register an internal alarm (timer) to update local clock from RTC every hour
-  Alarm.timerRepeat(3600, readRTC);
+  Alarm.timerRepeat(10, readRTC);
 }
 
 
 void readRTC() {
   // BUG READ RTC 
-  setTime(8,29,0,1,1,14);
 }
 
 void setRTCTime(int year, int month, int day, int h, int m, int s) {
-  // BUG set RTC
+  // BUG SET RTC
   // Set date-time of local clock
-  setTime(year, month, day, h, m, s);
+  setTime(h, m, s, day, month, year);
 }
 
 
@@ -203,7 +207,7 @@ void processCommand()
   }
 
   if (line.startsWith("SETVALUE")) {
-    long value = line.substring(7).toInt();
+    long value = line.substring(9).toInt();
     if ((value < 0) || (value > 255)) {
       Port.println("ERR"); return;
     }
@@ -326,42 +330,42 @@ void processCommand()
     // Read year
     int year = line.toInt();
     if ((year < 1970) || (0==line.length())) {
-      Port.println("ERR"); return;
+      Port.println("ERR year"); return;
     }
     line = line.substring(line.indexOf('-')+1);
 
     // Read month
     int month = line.toInt();
     if ((month < 1) || (month > 12) || (0==line.length())) {
-      Port.println("ERR"); return;
+      Port.println("ERR month"); return;
     }
     line = line.substring(line.indexOf('-')+1);
     
     // Read day
     int day = line.toInt();
     if ((day < 1) || (day > 31) || (0==line.length())) {
-      Port.println("ERR"); return;
+      Port.println("ERR day"); return;
     }
     line = line.substring(line.indexOf(' ')+1);
   
     // Read hour
     int hour = line.toInt();
     if ((hour < 0) || (hour > 23) || (0==line.length())) {
-      Port.println("ERR"); return;
+      Port.println("ERR hour"); return;
     }
     line = line.substring(line.indexOf(':')+1);
     
     // Read minute
     int minute = line.toInt();
-    if ((minute < 0) || (minute > 23) || (0==line.length())) {
-      Port.println("ERR"); return;
+    if ((minute < 0) || (minute > 59) || (0==line.length())) {
+      Port.println("ERR minute"); return;
     }
     line = line.substring(line.indexOf(':')+1);
     
     // Read second
     int second = line.toInt();
-    if ((second < 0) || (second > 23) || (0==line.length())) {
-      Port.println("ERR"); return;
+    if ((second < 0) || (second > 59) || (0==line.length())) {
+      Port.println("ERR second"); return;
     }
   
     setRTCTime(year, month, day, hour, minute, second);

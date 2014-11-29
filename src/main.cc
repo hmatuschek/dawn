@@ -7,6 +7,8 @@
 #include "dawn.hh"
 #include "mainwindow.hh"
 
+#include <iostream>
+#include <time.h>
 
 int main(int argc, char *argv[])
 {
@@ -35,16 +37,15 @@ int main(int argc, char *argv[])
 
     // Try to get time from device
     port.write("TIME\n");
-    if (! port.waitForReadyRead(1000)) {
-      QMessageBox::critical(
-            0, QObject::tr("Can not read time"),
-            QObject::tr("Can not read time from interface %1 (%2)"
-                        ).arg(name).arg(systemLocation));
-      continue;
+    port.waitForBytesWritten(1000);
+
+    QString line;
+    while(! line.contains('\n')) {
+      if (! port.waitForReadyRead(1000)) { break; }
+      line.append(port.readAll());
     }
 
-    QString line = port.readLine();
-    QDateTime time = QDateTime::fromString(line, "yyyy-M-d h:m:s");
+    QDateTime time = QDateTime::fromString(line.simplified(), "yyyy-M-d H:m:s");
     if (! time.isValid()) {
       QMessageBox::critical(
             0, QObject::tr("Got invalid time from device"),

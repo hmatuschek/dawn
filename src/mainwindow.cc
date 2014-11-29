@@ -3,6 +3,9 @@
 #include <QToolBar>
 #include <QTableView>
 #include <QSlider>
+#include <QHeaderView>
+
+#include "dayofweekdelegate.hh"
 #include "configdialog.hh"
 
 
@@ -13,15 +16,22 @@ MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
   setWindowTitle(tr("Dawn control"));
 
   QToolBar *toolbar = this->addToolBar(tr("Toolbar"));
+
   QAction *config = toolbar->addAction(tr("Config"));
+
   QSlider *bright = new QSlider(Qt::Horizontal);
   bright->setMinimum(0);
   bright->setMaximum(255);
+  bright->setValue(_dawn.value());
   toolbar->addWidget(bright);
+
   QAction *quit = toolbar->addAction(tr("Quit"));
 
   QTableView *table = new QTableView();
+  table->horizontalHeader()->hide();
+  table->verticalHeader()->hide();
   table->setModel(&_dawn);
+  table->setItemDelegateForColumn(1, new DayOfWeekDelegate());
   this->setCentralWidget(table);
 
   QObject::connect(quit, SIGNAL(triggered()), this, SLOT(close()));

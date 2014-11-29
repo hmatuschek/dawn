@@ -67,6 +67,10 @@ public:
   bool setData(const QModelIndex &index, const QVariant &value, int role);
 
 protected:
+  QString command(const QString &cmd);
+  bool command(const QString &cmd, QString &response);
+
+protected:
   /** The port interfacing the lamp. */
   QSerialPort _port;
   /** The list of alarms. */
