@@ -5,6 +5,7 @@
 #include <QSerialPort>
 #include <QVector>
 #include <QTime>
+#include <QByteArray>
 
 /** Proxy to the hardware. */
 class Dawn : public QAbstractTableModel
@@ -67,14 +68,29 @@ public:
   bool setData(const QModelIndex &index, const QVariant &value, int role);
 
 protected:
-  QString command(const QString &cmd);
-  bool command(const QString &cmd, QString &response);
+  bool _write(uint8_t c);
+  bool _write(uint8_t *buffer, size_t len);
+
+  bool _read(uint8_t &c);
+  bool _read(uint8_t *buffer, size_t len);
+
+  void _sign(uint8_t *buffer, size_t len);
+  void _sign(uint8_t *buffer, size_t len, uint8_t *hash);
+
+  bool _verify(uint8_t *buffer, size_t len);
+  bool _verify(uint8_t *buffer, size_t len, uint8_t *sig);
+
+  bool _send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len);
 
 protected:
   /** The port interfacing the lamp. */
   QSerialPort _port;
   /** The list of alarms. */
   QVector<Alarm> _alarms;
+  /** The secret shared with the device, initially 128 0-bits. */
+  uint8_t _secret[16];
+  /** The current salt (obtained from the device). */
+  uint8_t _salt[8];
 };
 
 #endif // DAWN_HH

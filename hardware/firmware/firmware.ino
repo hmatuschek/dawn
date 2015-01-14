@@ -2,11 +2,30 @@
 
 #include <Time.h>
 #include <TimeAlarms.h>
+#include "siphash24.h"
 
 #define ledPin  3
 #define Port Serial1
 
 #define N_ALARM (dtNBR_ALARMS-1)
+
+#define CMD_GET_SALT      0x00
+#define CMD_GET_VALUE     0x01
+#define CMD_SET_VALUE     0x02
+#define CMD_GET_TIME      0x03
+#define CMD_SET_TIME      0x04
+#define CMD_GET_N_ALARMS  0x05
+#define CMD_GET_ALARM     0x06
+#define CMD_SET_ALARM     0x07
+#define CMD_GET_MAX_DIM   0x08
+#define CMD_SET_MAX_DIM   0x09
+#define CMD_GET_DIM_DUR   0x0A
+#define CMD_SET_DIM_DUR   0x0B
+
+#define RES_OK            0x00
+#define RES_CMD_UNKNOWN   0x01
+#define RES_SIG_INVALID   0x02
+#define RES_CMD_ERROR     0x03
 
 
 typedef struct {
@@ -22,6 +41,10 @@ typedef struct {
   byte maxDim;
   // Duration of dimming [0, maxDim] in sec.
   byte dimDur;  
+  // The current salt value
+  byte salt[8];
+  // The shared secret
+  byte secret[16];
 } State;
 
 // The state variable
@@ -51,6 +74,10 @@ void setup() {
   readRTC();
   // Read state from EEPROM
   readState();
+  // Read salt
+  readSalt();
+  // Read secret
+  readSecret();
   // Read alarm settings from EEPROM
   readAlarm();
   // config timers
@@ -113,8 +140,38 @@ void writeState() {
 }
 
 
-void readAlarm() {
+void readSalt() {
   int idx = 2;
+  for (int i=0; i<8; i++) { 
+    current_state.salt[i]   = EEPROM.read(idx); idx++; 
+  }
+}
+
+void writeSalt() {
+  int idx = 2;
+  for (int i=0; i<8; i++) { 
+    EEPROM.write(idx, current_state.salt[i]);
+  }
+}
+
+
+void readSecret() {
+  int idx = 10;
+  for (int i=0; i<16; i++) { 
+    current_state.secret[i]   = EEPROM.read(idx); idx++; 
+  }
+}
+
+void writeSecret() {
+  int idx = 10;
+  for (int i=0; i<16; i++) { 
+    EEPROM.write(idx, current_state.secret[i]);
+  }
+}
+
+
+void readAlarm() {
+  int idx = 26;
   // Iterate over all possible alarms
   for (int i=0; i<N_ALARM; i++) {
     // LSB specifies if alarm is enabled
@@ -127,7 +184,7 @@ void readAlarm() {
 }
 
 void writeAlarm() {
-  int idx = 2;
+  int idx = 26;
   // Iterate over all possible alarms
   for (int i=0; i<N_ALARM; i++) {
     EEPROM.write(idx, alarm_cfg[i].flags); idx++;
@@ -170,216 +227,181 @@ void setRTCTime(int year, int month, int day, int h, int m, int s) {
   setTime(h, m, s, day, month, year);
 }
 
+int verify(byte *buffer, int len) {
+  byte osig[8];
+  memcpy(osig, current_state.salt, 8);
+  siphash24_cbc_mac(osig, buffer, len, current_state.secret);
+  int correct = 1;
+  for (int i=0; i<8; i++) {
+    correct &= (osig[i] == buffer[len+i]);
+  }
+  return correct;
+} 
 
+
+void sign(byte *buffer, int len) {
+  memcpy(buffer+len, current_state.salt, 8);
+  siphash24_cbc_mac(buffer+len, buffer, len, current_state.secret);
+}
+
+void advanceSalt(byte *sig) {
+  memcpy(current_state.salt, sig, 8);
+  writeSalt();
+}
 
 
 void processCommand() 
 {
   if (! Port.available())  { return; }
 
+  byte message[16];
+  
   // Read command from BT serial:
-  String line = String(Port.readStringUntil('\n'));
+  message[0] = Port.read();
+  
+  // Dispatch by command byte
+  switch (message[0]) 
+  {
+  case CMD_GET_SALT:
+    Port.write(current_state.salt, 8);
+    break;
     
-  // Dispatch command
-  if (line == "ON") {
-    current_state.value = 255;
-    current_state.state = 0;
-    Port.println("OK");
-    return;
-  } 
+  case CMD_GET_VALUE:
+    Port.readBytes((char *)message+1, 8);
+    if (! verify(message, 1)) { goto SIG_ERROR; }
+    advanceSalt(message+1);
+    message[0] = RES_OK; message[1] = current_state.value;
+    sign(message, 2); Port.write(message, 10);
+    advanceSalt(message+2);
+    break;
     
-  if (line == "OFF") {
-    current_state.value = 0;
-    current_state.state = 0;
-    Port.println("OK");
-    return;
-  } 
+  case CMD_SET_VALUE:
+    Port.readBytes((char *)message+1, 9);
+    if (! verify(message, 2)) { goto SIG_ERROR; }
+    current_state.value = message[1];
+    advanceSalt(message+2);
+    message[0] = RES_OK;
+    sign(message, 1);  Port.write(message, 9);
+    advanceSalt(message+1);
+    break;
     
-  if (line == "DIM") {
-    current_state.value = 0;
-    current_state.state = 1;
-    return;
-  } 
+  case CMD_GET_TIME:
+    Port.readBytes((char *)message+1, 8);
+    if (! verify(message, 1)) { goto SIG_ERROR; }
+    advanceSalt(message+1);
+    message[0] = RES_OK;   message[1] = (year()>>8);
+    message[2] = year();   message[3] = month();
+    message[4] = day();    message[5] = hour();
+    message[6] = minute(); message[7] = second();
+    sign(message, 8); Port.write(message, 16);
+    advanceSalt(message+8);
+    break;
     
-  if (line == "VALUE") {
-    Port.println(current_state.value);
-    return;
-  }
+  case CMD_SET_TIME:
+    Port.readBytes((char *)message+1, 15);
+    if (! verify(message, 8)) { goto SIG_ERROR; }
+    advanceSalt(message+8);
+    setRTCTime((int(message[1])<<8)+message[2], message[3], message[4], 
+               message[5], message[6], message[7]);
+    message[0] = RES_OK;
+    sign(message,1); Port.write(message, 9);
+    advanceSalt(message+1);
+    break;
+    
+  case CMD_GET_N_ALARMS:
+    Port.readBytes((char *)message+1, 8);
+    if (! verify(message, 1)) { goto SIG_ERROR; }
+    advanceSalt(message+1);
+    message[0] = RES_OK; message[1] = N_ALARM;
+    sign(message, 2); Port.write(message, 10);
+    advanceSalt(message+2);
+    break;
+    
+  case CMD_GET_ALARM:
+    Port.readBytes((char *)message+1, 9);
+    if (! verify(message, 2)) { goto SIG_ERROR; }
+    if (message[2] >= N_ALARM) { goto CMD_ERROR; }
+    advanceSalt(message+2);
+    { int idx = message[1];
+      message[0] = RES_OK;              message[1] = alarm_cfg[idx].flags;
+      message[2] = alarm_cfg[idx].hour; message[3] = alarm_cfg[idx].minute; }
+    sign(message, 4); Port.write(message, 12);
+    advanceSalt(message+4);
+    break;
+    
+  case CMD_SET_ALARM:
+    Port.readBytes((char *)message+1, 12);
+    if (! verify(message, 5)) { goto SIG_ERROR; }
+    if (message[1] >= N_ALARM) { goto CMD_ERROR; }
+    advanceSalt(message+5);
+    alarm_cfg[message[1]].flags  = message[2]; 
+    alarm_cfg[message[1]].hour   = message[3]; 
+    alarm_cfg[message[1]].minute = message[4]; 
+    updateAlarm(); writeAlarm();
+    message[0] = RES_OK;
+    sign(message, 1); Port.write(message, 9);
+    advanceSalt(message+1);
+    break;
+    
+  case CMD_GET_MAX_DIM:
+    Port.readBytes((char *)message+1, 8);
+    if (! verify(message, 1)) { goto SIG_ERROR; }
+    advanceSalt(message+1);
+    message[0] = RES_OK; message[1] = current_state.maxDim;
+    sign(message, 2); Port.write(message, 10);
+    advanceSalt(message+2);
+    break; 
 
-  if (line.startsWith("SETVALUE")) {
-    long value = line.substring(9).toInt();
-    if ((value < 0) || (value > 255)) {
-      Port.println("ERR"); return;
-    }
-    current_state.value = value;
-    Port.println("OK");
-    return;
-  }
-    
-  if (line == "MAX") {
-    Port.println(current_state.maxDim);    
-    return;
-  } 
-   
-  if (line.startsWith("SETMAX")) {
-    long value = line.substring(7).toInt();
-    if ((value < 1) || (value > 255)) {
-      Port.println("ERR"); return;
-    }   
-    // Store max dim-value into eeprom
-    current_state.maxDim = value;
+  case CMD_SET_MAX_DIM:
+    Port.readBytes((char *)message+1, 9);
+    if (! verify(message, 2)) { goto SIG_ERROR; }
+    advanceSalt(message+2);
+    current_state.maxDim = message[1];
     writeState();
-    Port.println("OK");
-    return;
-  } 
-    
-  if (line == "DUR") {
-    Port.println(current_state.dimDur);
-    return;
-  }
-  
-  if (line.startsWith("SETDUR")) {
-    long value = line.substring(7).toInt();
-    if ((value < 1) || (value > 120)) {
-      Port.println("ERR"); return;
-    }
-    // Store dim duration into eeprom
-    current_state.dimDur = value;
-    writeState();        
-    Port.println("OK");
-    return;
-  }
-  
-  if (line == "NALARM") {
-    // Returns the number of possible alarms
-    Port.println(N_ALARM);
-    return;
-  } 
-  
-  if (line.startsWith("ALARM")) {
-    int idx = line.substring(6).toInt();
-    if ((idx < 0) || (idx>=N_ALARM)) {
-      Port.println("ERR"); return;
-    } 
-    Port.print(int(alarm_cfg[idx].flags&1)); Port.print(" ");
-    Port.print(int(alarm_cfg[idx].flags>>1)); Port.print(" ");
-    Port.print(int(alarm_cfg[idx].hour)); Port.print(" ");
-    Port.println(int(alarm_cfg[idx].minute)); 
-    return;
-  } 
+    message[0] = RES_OK; 
+    sign(message, 1); Port.write(message, 9);
+    advanceSalt(message+1);
+    break;
 
-  if (line.startsWith("SETALARM")) {
-    line = line.substring(9);
-      
-    // Read alarm index
-    int idx = line.toInt();
-    if ((idx < 0) || (idx>=N_ALARM) || (0==line.length())) {
-      Port.println("ERR idx"); return;
-    }
-    line = line.substring(line.indexOf(' ')+1);
+  case CMD_GET_DIM_DUR:
+    Port.readBytes((char *)message+1, 8);
+    if (! verify(message, 1)) { goto SIG_ERROR; }
+    advanceSalt(message+1);
+    message[0] = RES_OK; message[1] = current_state.dimDur;
+    sign(message, 2); Port.write(message, 10);
+    advanceSalt(message+2);
+    break;
     
-    // Read enabled flag
-    int enabled = line.toInt();
-    line = line.substring(line.indexOf(' ')+1);
-      
-    // Read day of week
-    int dow = line.toInt();
-    if ((dow<0) || (dow>7) || (0==line.length())) {
-      Port.println("ERR"); return;
-    }
-    line = line.substring(line.indexOf(' ')+1);
-      
-    // Read hour
-    int hour = line.toInt();
-    if ((hour<0) || (hour>23) || (0==line.length())) {
-      Port.println("ERR"); return;
-    }
-    line = line.substring(line.indexOf(' ')+1);
-      
-    // Read minute
-    int minute = line.toInt();
-    if ((minute<0) || (minute>59) || (0==line.length())) {
-      Port.println("ERR"); return;
-    }
-      
-    // Assemble and store alarm config
-    alarm_cfg[idx].flags = (dow<<1) | (0 != enabled);
-    alarm_cfg[idx].hour  = hour;
-    alarm_cfg[idx].minute = minute;
-    // Store alarm config in EEPROM
-    writeAlarm();
-    // Update local timers
-    updateAlarm();
-    // Done
-    Port.println("OK"); return;
-  } 
-
-  if (line == "TIME") {
-    Port.print(year()); Port.print("-");
-    Port.print(month()); Port.print("-");
-    Port.print(day()); Port.print(" ");
-    Port.print(hour()); Port.print(":");
-    Port.print(minute()); Port.print(":");
-    Port.println(second());
-    return;
+  case CMD_SET_DIM_DUR:
+    Port.readBytes((char *)message+1, 9);
+    if (! verify(message, 2)) { goto SIG_ERROR; }
+    advanceSalt(message+2);
+    current_state.dimDur = message[1];
+    writeState();
+    message[0] = RES_OK; 
+    sign(message, 1); Port.write(message, 9);
+    advanceSalt(message+1);
+    break;
+    
+  default:  
+    goto CMD_UNKNOWN;
   }
+ 
+  // OK
+  return;
   
-  if (line.startsWith("SETTIME")) {
-    line = line.substring(8);
-      
-    // Read year
-    int year = line.toInt();
-    if ((year < 1970) || (0==line.length())) {
-      Port.println("ERR year"); return;
-    }
-    line = line.substring(line.indexOf('-')+1);
-
-    // Read month
-    int month = line.toInt();
-    if ((month < 1) || (month > 12) || (0==line.length())) {
-      Port.println("ERR month"); return;
-    }
-    line = line.substring(line.indexOf('-')+1);
-    
-    // Read day
-    int day = line.toInt();
-    if ((day < 1) || (day > 31) || (0==line.length())) {
-      Port.println("ERR day"); return;
-    }
-    line = line.substring(line.indexOf(' ')+1);
+CMD_UNKNOWN:
+  message[0] = RES_CMD_UNKNOWN;
+  Port.write(message, 1);
+  return;
   
-    // Read hour
-    int hour = line.toInt();
-    if ((hour < 0) || (hour > 23) || (0==line.length())) {
-      Port.println("ERR hour"); return;
-    }
-    line = line.substring(line.indexOf(':')+1);
-    
-    // Read minute
-    int minute = line.toInt();
-    if ((minute < 0) || (minute > 59) || (0==line.length())) {
-      Port.println("ERR minute"); return;
-    }
-    line = line.substring(line.indexOf(':')+1);
-    
-    // Read second
-    int second = line.toInt();
-    if ((second < 0) || (second > 59) || (0==line.length())) {
-      Port.println("ERR second"); return;
-    }
+SIG_ERROR:
+  message[0] = RES_SIG_INVALID;
+  Port.write(message, 1);
+  return;
   
-    setRTCTime(year, month, day, hour, minute, second);
-    Port.println("OK"); return;
-  }
-   
-  if (line == "STAT") {
-    Port.print("State "); Port.println(current_state.state);
-    Port.print("Value "); Port.println(current_state.value);
-    Port.print("Dim max "); Port.println(current_state.maxDim); 
-    Port.print("Dim dur "); Port.println(current_state.dimDur); 
-    Port.print("Dim delay "); Port.println(current_state.dimDelay);
-    return;
-  } 
-  
-  Port.println("ERR");
+CMD_ERROR:
+  message[0] = RES_CMD_ERROR;
+  Port.write(message, 2);
 }
+
