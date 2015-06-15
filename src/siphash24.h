@@ -5,8 +5,9 @@
 extern "C" {
 #endif
 
-/** CBC-MAC implementation using siphash 2-4.
- * @param hash (64 bit) On entry, it contains the current IV (last hash) and on exit the hash (next IV).
+/** CBC-MAC implementation using SipHash 2-4.
+ * @param hash (64 bit) On entry, it contains the current IV (last hash). On exit it contains the
+ *        hash (next IV).
  * @param in Input buffer.
  * @param inlen Input buffer length.
  * @param key (128 bit) Shared secret.*/

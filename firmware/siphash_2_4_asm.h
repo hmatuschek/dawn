@@ -13,6 +13,7 @@
 
 #ifndef siphash_2_4_asm_h
 #define siphash_2_4_asm_h
+
 #ifdef __cplusplus
 extern "C" {
 #endif

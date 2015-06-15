@@ -5,43 +5,37 @@
 
 Basic structure command structure
  +--------+-- ... --+-- ... --+
- |  CMD   | PAYLOAD |   SIG   |
+ |  CMD   | PAYLOAD |   MAC   |
  +--------+---... --+-- ... --+
 
 Each command message consists of a 8-bit command field, an optional Payload (variable size)
-and the signature (160 bit). The only exception forms the SALT command, returning the current
+and the signature (64 bit). The only exception forms the SALT command, returning the current
 salt for the signature of the next command.
 
 Basic response structure
  +--------+-- ... --+-- ... --+
- |  RESP  | PAYLOAD |   SIG   |
+ |  RESP  | PAYLOAD |   MAC   |
  +--------+-- ... --+-- ... --+
 
-Just for fun, also the responses are signed usig the _next_ salt obained from the command
-signature and the previous salt. The salt gets not updated once a response is was send.
+Just for fun, also the responses are signed usig the IV obained from the command
+signature.
 
 
 ### GET_SALT command (CMD = 0x00)
-Returns the current salt (160bit) used for the computation of the signature of the next command.
-The salt changes each time, a command is received by the device. The SALT command message consists
-of a single byte (value 0x00) without any signature.
+Returns the current salt (64bit) used for the computation of the signature of the next command.
+The salt changes each time, a command is received or a response is send by the device.
+The SALT command message consists of a single byte (value 0x00) without any signature.
 
-The salt gets updated given the last correct signature SIG as the RMD-160 hash of the current SALT
-concatenated with the last valid signature, say
-
-  SALT <- rmd160(SALT:SIG)
-
-The SALT response has not the form above, it simply is the current SALT.
+The SALT response has not the form shown above, it simply is the current SALT.
 
 
-### Signature algorithm
+### MAC algorithm
 
-The signature (160bit) is simply the RMD-160 hash of a shared secret (SEC), the current SALT and
-the complete command message (MSG) excluding the signature (of cause).
+The signature (128bit) is simply the SipHash-2-4 of the message body
 
-  SIG <- rmd160(SEC:SALT:MSG)
+  MAC <- siphash-2-4_cbc(LAST_MAC, MESSAGE, SECRET)
 
-The SALT is added to the signature to avoid replay attacks, in the case of an unencrypted chanel.
+A CBC-MAC was chosen to avoid replay attacks, in the case of an unencrypted chanel.
 
 
 ### GET_VALUE command (0x01)
@@ -174,5 +168,3 @@ Set the dimming duration in minutes.
 The command payload contains a single uint8_t specifying the dimming duration in minutes.
 
 The response has no payload.
-
-

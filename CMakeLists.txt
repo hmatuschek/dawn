@@ -27,8 +27,10 @@ set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ggdb")
 
 
-# RX sources...
+# application sources...
 add_subdirectory(src)
+# firmware sources
+add_subdirectory(firmware)
 
 # Source distribution packages:
 set(CPACK_PACKAGE_VERSION_MAJOR "0")

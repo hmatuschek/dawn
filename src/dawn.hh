@@ -29,7 +29,10 @@ public:
 public:
   /** Constructor, @c portname specifies the name of the serial port interfacing the
    * device. */
-  explicit Dawn(const QString &portname, QObject *parent = 0);
+  explicit Dawn(const QString &portname, const unsigned char *secret, QObject *parent = 0);
+
+  /** Returns @c true, if the device was initialized correctly. */
+  bool isValid() const;
 
   /** Returns the number of possible alarm configurations. */
   size_t numAlarms() const;
@@ -85,6 +88,8 @@ protected:
 protected:
   /** The port interfacing the lamp. */
   QSerialPort _port;
+  /** Is set to @c true if constructed correctly. */
+  bool _valid;
   /** The list of alarms. */
   QVector<Alarm> _alarms;
   /** The secret shared with the device, initially 128 0-bits. */

@@ -26,15 +26,23 @@ typedef enum {
 } Responses;
 
 
-Dawn::Dawn(const QString &portname, QObject *parent)
-  : QAbstractTableModel(parent), _port(portname)
+Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent)
+  : QAbstractTableModel(parent), _port(portname), _valid(false)
 {
+  // Store shared secret
+  memcpy(_secret, secret, 16);
+
+  // Open port
   _port.setBaudRate(9600);
   _port.open(QIODevice::ReadWrite);
+  if (! _port.isOpen()) { return; }
 
   // First, get SALT
   if (! _write(GET_SALT)) { return; }
   if (! _read(_salt, 8)) { return; }
+
+  // Verify salt
+  if (! time().isValid()) { return; }
 
   // Get N alarms
   uint8_t tx_buffer[32];
@@ -59,6 +67,13 @@ Dawn::Dawn(const QString &portname, QObject *parent)
     _alarms[i].enabled = enabled; _alarms[i].dayOfWeek = DayOfWeek(dayofweek);
     _alarms[i].time = QTime(hour, minute);
   }
+
+  _valid = true;
+}
+
+bool
+Dawn::isValid() const {
+  return _valid;
 }
 
 size_t

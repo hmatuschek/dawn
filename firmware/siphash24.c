@@ -16,6 +16,7 @@
 #include <string.h>
 #include "siphash24.h"
 #include "siphash_2_4_asm.h"
+#include <avr/io.h>
 #include <avr/pgmspace.h>
 
 unsigned const char v0_init[] PROGMEM = {0x73, 0x6f, 0x6d, 0x65, 0x70, 0x73, 0x65, 0x75};
@@ -50,6 +51,7 @@ void siphash24_hash_block(unsigned char *hash, const unsigned char *block, const
 { 
   unsigned char m[8];
   
+  // Init...
   memcpy_P(v0,v0_init,8);
   memcpy_P(v1,v1_init,8);
   memcpy_P(v2,v2_init,8);
@@ -66,6 +68,7 @@ void siphash24_hash_block(unsigned char *hash, const unsigned char *block, const
   xor64(v1, m);
   xor64(v3, m);
   
+  // process a single block
   int i=0;
   for (; i<8; i++) { m[i] = block[7-i] ^ hash[7-i]; }
   xor64(v3, m);
@@ -98,7 +101,7 @@ void siphash24_cbc_mac(unsigned char *hash,
 {  
   unsigned int rem = inlen;
   // Process data in 64bit blocks
-  while (rem > 8) {
+  while (rem >= 8) {
     siphash24_hash_block(hash, in, key);
     rem -= 8; in += 8;
   }

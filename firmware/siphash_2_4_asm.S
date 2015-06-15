@@ -1,17 +1,16 @@
 /*
  * siphash_2_4_asm.S
-
- Supporting assembler routines for SipHash for 8bit Atmel processors
- 
- see https://131002.net/siphash/ for details of algorithm
- 
- (c)2013 Forward Computing and Control Pty. Ltd. 
- www.forward.com.au
- This code may be freely used for both private and commercial use.
- Provide this copyright is maintained.
+ *
+ * Supporting assembler routines for SipHash for 8bit Atmel processors
+ *  see https://131002.net/siphash/ for details of algorithm
+ *
+ * (c) 2013 Forward Computing and Control Pty. Ltd.
+ * www.forward.com.au
+ * This code may be freely used for both private and commercial use.
+ * Provide this copyright is maintained.
  */ 
 
- #include <avr/io.h>  
+#include <avr/io.h>
 
 loopCounter = 18 // R18 used for loop counting
 tmp_a = 19
@@ -21,7 +20,7 @@ tmp_b = 20
 // Call-used registers (X r26-r27, Z r30-r31) use freely in asm, Y used for frame pointer 
 // Call-saved registers (r2-r17, r28-r29)  Y used for frame pointer asm needs to save/restore these
 
- ;******************** MAIN (START) *******************************
+;******************** MAIN (START) *******************************
 // call with R25,R24 a,  R23,R22 b
 // result b = b+a
 //  uses R18, R19,R20, R26,R27,R30,R31

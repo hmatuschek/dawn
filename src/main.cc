@@ -10,12 +10,18 @@
 #include <iostream>
 #include <time.h>
 
+
+unsigned const char device_secret[] =
+ { 0xf3, 0xc5, 0x97, 0x79, 0xa4, 0x27, 0xa6, 0xaf,
+   0xc6, 0xae, 0x14, 0x81, 0xdd, 0xb8, 0x5c, 0xa0 };
+
+
 int main(int argc, char *argv[])
 {
   QApplication app(argc, argv);
 
+  Dawn *dawn = 0;
   QString name, systemLocation;
-
   // Let the user select an interfact to the device:
   while (true) {
     PortDialog dialog;
@@ -23,44 +29,21 @@ int main(int argc, char *argv[])
 
     name = dialog.name();
     systemLocation = dialog.systemLocation();
+    dawn = new Dawn(systemLocation, device_secret);
 
-    QSerialPort port;
-    port.setPortName(systemLocation);
-    port.setBaudRate(9600);
-    if (! port.open(QIODevice::ReadWrite)) {
-      QMessageBox::critical(
-            0, QObject::tr("Can not open interface"),
-            QObject::tr("Can not open interface %1 (%2)"
-                        ).arg(name).arg(systemLocation));
-      continue;
-    }
-
-    // Try to get time from device
-    port.write("TIME\n");
-    port.waitForBytesWritten(1000);
-
-    QString line;
-    while(! line.contains('\n')) {
-      if (! port.waitForReadyRead(1000)) { break; }
-      line.append(port.readAll());
-    }
-
-    QDateTime time = QDateTime::fromString(line.simplified(), "yyyy-M-d H:m:s");
-    if (! time.isValid()) {
+    if (! dawn->isValid()) {
       QMessageBox::critical(
             0, QObject::tr("Got invalid time from device"),
             QObject::tr("Got invalid time from device at interface %1 (%2)"
                         ).arg(name).arg(systemLocation));
+      delete dawn;
       continue;
     }
     break;
   }
 
-  // Create interface object
-  Dawn dawn(systemLocation);
-
   // Create main window
-  MainWindow window(dawn);
+  MainWindow window(*dawn);
   window.show();
 
   // go...
