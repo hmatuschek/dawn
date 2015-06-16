@@ -1,13 +1,19 @@
-set(lampe_SOURCES main.cc portdialog.cc dawn.cc dayofweekdelegate.cc timedelegate.cc
+set(dawn_SOURCES main.cc portdialog.cc dawn.cc dayofweekdelegate.cc timedelegate.cc
     mainwindow.cc configdialog.cc siphash24.c)
-set(lampe_MOC_HEADERS portdialog.hh dawn.hh dayofweekdelegate.hh timedelegate.hh
+set(dawn_MOC_HEADERS portdialog.hh dawn.hh dayofweekdelegate.hh timedelegate.hh
     mainwindow.hh configdialog.hh)
-qt5_wrap_cpp(lampe_MOC_SOURCES ${lampe_MOC_HEADERS})
+qt5_wrap_cpp(dawn_MOC_SOURCES ${dawn_MOC_HEADERS})
 
-set(lampe_HEADERS siphash.h ${lampe_MOC_HEADERS} )
+set(dawn_HEADERS siphash.h ${dawn_MOC_HEADERS} )
 
-qt5_add_resources(lampe_RCC_SOURCES ../resources.qrc)
+qt5_add_resources(dawn_RCC_SOURCES ../resources.qrc)
 
-add_executable(lampe ${lampe_SOURCES} ${lampe_MOC_SOURCES} ${lampe_RCC_SOURCES})
-target_link_libraries(lampe ${LIBS})
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/secret.h
+  COMMAND ${PYTHON_EXECUTABLE}
+  ARGS ${CMAKE_SOURCE_DIR}/gen_secret.py ${CMAKE_BINARY_DIR}/secret.h
+  DEPENDS ${CMAKE_SOURCE_DIR}/gen_secret.py)
+
+set_property(SOURCE main.cc APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_BINARY_DIR}/secret.h)
+add_executable(dawn ${dawn_SOURCES} ${dawn_MOC_SOURCES} ${dawn_RCC_SOURCES})
+target_link_libraries(dawn ${LIBS})
 

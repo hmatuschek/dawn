@@ -1,5 +1,5 @@
-#ifndef __LAMPE_DS1307_H__
-#define __LAMPE_DS1307_H__
+#ifndef __DAWN_DS1307_H__
+#define __DAWN_DS1307_H__
 
 #include "inttypes.h"
 
@@ -21,4 +21,4 @@ void ds1307_read(DateTime *datetime);
 void ds1307_write(DateTime *datetime);
 
 
-#endif // __LAMPE_DS1307_H__
+#endif // __DAWN_DS1307_H__

@@ -1,5 +1,5 @@
-#ifndef __LAMPE_PWM_H__
-#define __LAMPE_PWM_H__
+#ifndef __DAWN_PWM_H__
+#define __DAWN_PWM_H__
 
 #include <inttypes.h>
 

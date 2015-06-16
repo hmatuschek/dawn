@@ -5,7 +5,7 @@ void
 pwm_init() {
   // PB1 is now an output
   DDRB |= (1 << DDB1);
-  // Set value to 0
+  // set value to 0
   OCR1A = 0x0000;
   // set none-inverting mode
   TCCR1A |= (1 << COM1A1);

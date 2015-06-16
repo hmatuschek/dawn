@@ -1,6 +1,5 @@
 #include "i2c.h"
 #include <avr/io.h>
-#include <util/twi.h>
 
 #define MAX_TRIES 32
 

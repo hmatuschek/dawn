@@ -70,8 +70,8 @@
  *  +------+
  */
 
-#ifndef __LAMPE_COMMUNICACTION_H__
-#define __LAMPE_COMMUNICACTION_H__
+#ifndef __DAWN_COMMUNICACTION_H__
+#define __DAWN_COMMUNICACTION_H__
 
 #include "ds1307.h"
 #include "clock.h"
@@ -115,4 +115,4 @@ void comm_send_value(uint16_t value);
 void comm_send_time(DateTime *datetime);
 void comm_send_alarm(Alarm *alarm);
 
-#endif // __LAMPE_COMMUNICACTION_H__
+#endif // __DAWN_COMMUNICACTION_H__

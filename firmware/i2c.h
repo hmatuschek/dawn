@@ -1,5 +1,5 @@
-#ifndef __LAMPE_I2C_H__
-#define __LAMPE_I2C_H__
+#ifndef __DAWN_I2C_H__
+#define __DAWN_I2C_H__
 
 #include <util/twi.h>
 
@@ -20,4 +20,4 @@ char i2c_write(char data);
 char i2c_read(uint8_t *data, char ack_type);
 
 
-#endif // __LAMPE_I2C_H__
+#endif // __DAWN_I2C_H__

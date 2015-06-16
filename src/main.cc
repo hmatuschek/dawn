@@ -10,11 +10,7 @@
 #include <iostream>
 #include <time.h>
 
-
-unsigned const char device_secret[] =
- { 0xf3, 0xc5, 0x97, 0x79, 0xa4, 0x27, 0xa6, 0xaf,
-   0xc6, 0xae, 0x14, 0x81, 0xdd, 0xb8, 0x5c, 0xa0 };
-
+#include "secret.h"
 
 int main(int argc, char *argv[])
 {
@@ -29,16 +25,16 @@ int main(int argc, char *argv[])
 
     name = dialog.name();
     systemLocation = dialog.systemLocation();
-    dawn = new Dawn(systemLocation, device_secret);
+    dawn = new Dawn(systemLocation, secret);
 
-    if (! dawn->isValid()) {
+    /*if (! dawn->isValid()) {
       QMessageBox::critical(
             0, QObject::tr("Got invalid time from device"),
             QObject::tr("Got invalid time from device at interface %1 (%2)"
                         ).arg(name).arg(systemLocation));
       delete dawn;
       continue;
-    }
+    }*/
     break;
   }
 

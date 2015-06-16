@@ -21,14 +21,10 @@ protected slots:
   void onSetTimeToNow();
   void onSetTime();
   void onUpdateTime();
-  void onBrightnessChanged(int value);
-  void onDurationChanged(int value);
 
 protected:
   Dawn &_dawn;
   QDateTimeEdit *_dtEdit;
-  QSlider *_maxBright;
-  QSpinBox *_dawnDur;
   QTimer _timer;
 };
 

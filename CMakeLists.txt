@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.8)
-project(lampe)
+project(dawn)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 include(InstallHeadersWithDirectory)
@@ -26,6 +26,9 @@ set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
 set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ggdb")
 
+# Needed to generate shared secret and dawn function
+find_package(PythonInterp REQUIRED)
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
 
 # application sources...
 add_subdirectory(src)

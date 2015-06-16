@@ -1,5 +1,5 @@
-#ifndef __LAMPE_GPIO_H__
-#define __LAMPE_GPIO_H__
+#ifndef __DAWN_GPIO_H__
+#define __DAWN_GPIO_H__
 
 #include <inttypes.h>
 
@@ -14,4 +14,4 @@ uint8_t gpio_pin(uint8_t key);
 KeyState gpio_update_key(uint8_t key);
 
 
-#endif // __LAMPE_GPIO_H__
+#endif // __DAWN_GPIO_H__

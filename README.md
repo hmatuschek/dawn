@@ -1,4 +1,27 @@
-# Bluetooth Controlled light alarm-clock
+# Bluetooth controlled dawn simulator
+
+This is a simple bluetooth-controlled bedside light which can act as a dawn simulator.
+
+## Hardware
+
+The hardware (schematics can be found in the hardware/ directory) consists of a high-power LED,
+a current regulator (BUZ11 + 2 BC547), an ATMega168-22P MCU, a real-time clock (DS1307) with
+back-up battery and a serial <-> bluetooth interface module (JY-MCU).
+
+The circuit can be adopted easily to different LEDs by changing the value of R25 and/or R30 such
+that R25||R30 = 0.6/Imax, where Imax is the maximum current through the LED. Please be aware that
+the MOSFET Q4 as well as the LED may need some cooling.
+
+The brightness of the LED will be controlled by the high-speed PWM (pin 15) of the ATMega
+through the low-pass (R27,C1).
+
+The firmware for the ATMega168 can be found in the firmware/ directory.
+
+
+## Software
+
+The software can be found in the src/ directory an provides a simple GUI using QT5 to configure and
+controll the dawn simulator.
 
 
 ## Communication protocol
@@ -9,15 +32,13 @@ Basic structure command structure
  +--------+---... --+-- ... --+
 
 Each command message consists of a 8-bit command field, an optional Payload (variable size)
-and the signature (64 bit). 
+and a message authentication code (64 bit).
 
-
-### GET_SALT command (CMD = 0x00)
-Returns the current salt (64bit) used for the computation of the signature of the next command.
-The salt changes each time, a command is received or a response is send by the device.
-The SALT command message consists of a single byte (value 0x00) without any signature.
-
-The SALT response has not the form shown above, it simply is the current SALT.
+The serial <-> bluetooth module has only a 4-digit pin for the access control. Hence some
+additional measures are needed for the access control. Every message send to the device is
+therefore authenticated using a simple MAC. The MAC is computed over the CMD and PAYLOAD fields
+of the message using the SIPHASH(2,4) function with a shared secret. This does not provide
+a very high level of security but is sufficient for a bedside light.
 
 
 ### MAC algorithm
@@ -26,18 +47,19 @@ The signature (64bit) is simply the SipHash-2-4 of the message body
 
   MAC = siphash24(MESSAGE, SECRET)
 
+
 ### GET_VALUE command (0x01)
 
-Returns the current value of the lamp. This command has no payload.
+Returns the current luminescence value of the lamp. This command has no payload.
 
-The response contains the current value as a uint8_t as the payload.
+The response contains the current value as a uint16_t as the payload.
 
 
 ### SET_VALUE command (0x02)
 
-Sets the current value of the lamp.
+Sets the current luminescence value of the lamp.
 
-The command payload contains the value as a uint8_t.
+The command payload contains the value as a uint16_t.
 
 On success, a single byte (0x00) is returned.
 
@@ -52,7 +74,8 @@ The response payload has the following structure
 
 YEAR:MONTH:DAY:DAYOFWEEK:HOUR:MINTUE:SECOND
 
-Where YEAR is transmitted as a uint16_t and MONTH, DAY, DAYOFWEEK, HOUR, MINUTE and SECOND as uint8_t.
+Where YEAR is transmitted as a uint16_t and MONTH, DAY, DAYOFWEEK, HOUR, MINUTE and SECOND as
+uint8_t.
 
 
 ### SET_TIME command (0x04)
@@ -63,7 +86,8 @@ The command payload has the following structure
 
 YEAR:MONTH:DAY:DAYOFWEEK:HOUR:MINTUE:SECOND
 
-Where YEAR is transmitted as a uint16_t and MONTH, DAY, DAYOFWEEK, HOUR, MINUTE and SECOND as uint8_t.
+Where YEAR is transmitted as a uint16_t and MONTH, DAY, DAYOFWEEK, HOUR, MINUTE and SECOND as
+uint8_t.
 
 On success, a single byte (0x00) is returned.
 

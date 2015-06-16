@@ -15,13 +15,18 @@ class Dawn : public QAbstractTableModel
 public:
   /** Defines the possible alarm selection. */
   typedef enum {
-    EVERYDAY, SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY
+    SUNDAY    = 0b0000001,
+    MONDAY    = 0b0000010,
+    TUESDAY   = 0b0000100,
+    WEDNESDAY = 0b0001000,
+    THURSDAY  = 0b0010000,
+    FRIDAY    = 0b0100000,
+    SATURDAY  = 0b1000000
   } DayOfWeek;
 
   /** Represents an alarm configuration. */
   typedef struct {
-    bool enabled;
-    DayOfWeek dayOfWeek;
+    uint8_t dowFlags;
     QTime time;
   } Alarm;
 
@@ -42,9 +47,9 @@ public:
   bool setAlarm(size_t idx, const Alarm &alarm);
 
   /** Returns the current value (brightness) of the lamp. */
-  uint8_t value();
+  uint16_t value();
   /** Resets the current value (brightness) of the lamp. */
-  bool setValue(uint8_t value);
+  bool setValue(uint16_t value);
 
   /** Retunrs the time and date of the device. */
   QDateTime time();
@@ -53,15 +58,6 @@ public:
   /** Sets the time & date of the device to the given date/time. */
   bool setTime(const QDateTime &time);
 
-  /** Returns the current maximum brightness during a "dawn". */
-  uint8_t maxValue();
-  /** (Re-) Sets the maximum brightness during a dawn. */
-  bool setMaxValue(uint8_t value);
-
-  /** Returns the current "dawn" duration in minutes. */
-  uint8_t duration();
-  /** (Re-) Sets the "dawn" duration in minuted. */
-  bool setDuration(uint8_t dur);
 
   /* Implementation of QAbstractListModel interface. */
   int rowCount(const QModelIndex &parent) const;
@@ -79,9 +75,6 @@ protected:
 
   void _sign(uint8_t *buffer, size_t len);
   void _sign(uint8_t *buffer, size_t len, uint8_t *hash);
-
-  bool _verify(uint8_t *buffer, size_t len);
-  bool _verify(uint8_t *buffer, size_t len, uint8_t *sig);
 
   bool _send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len);
 

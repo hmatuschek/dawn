@@ -85,7 +85,10 @@ ds1307_write(DateTime *datetime) {
   // Write day of month
   i2c_write(0x1f & dec2bcd(datetime->day));
   // Write year as 20xx
-  i2c_write(0xff & dec2bcd((uint8_t)(datetime->year-2000)));
+  uint16_t year = datetime->year;
+  if (year < 2000) { year = 2000; }
+  if (year >= 2100) { year = 2099; }
+  i2c_write(0xff & dec2bcd((uint8_t)(year-2000)));
   // Stop I2C Transmission
   i2c_stop();
 }

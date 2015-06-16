@@ -1,5 +1,5 @@
-#ifndef __LAMPE_UART_H__
-#define __LAMPE_UART_H__
+#ifndef __DAWN_UART_H__
+#define __DAWN_UART_H__
 
 #include <inttypes.h>
 
@@ -32,4 +32,4 @@ uint16_t uart_write_size();
 uint16_t uart_write(const uint8_t *buffer, uint16_t n);
 void uart_putc(uint8_t c);
 
-#endif // __LAMPE_UART_H__
+#endif // __DAWN_UART_H__

@@ -1,29 +1,17 @@
 #include "dawn.hh"
+#include <QStringList>
 #include <QTextStream>
 #include <iostream>
 #include "siphash24.h"
 
 typedef enum {
-  GET_SALT     = 0x00,
   GET_VALUE    = 0x01,
   SET_VALUE    = 0x02,
   GET_TIME     = 0x03,
   SET_TIME     = 0x04,
-  GET_N_ALARMS = 0x05,
-  GET_ALARM    = 0x06,
-  SET_ALARM    = 0x07,
-  GET_MAX_DIM  = 0x08,
-  SET_MAX_DIM  = 0x09,
-  GET_DIM_DUR  = 0x0A,
-  SET_DIM_DUR  = 0x0B
+  GET_ALARM    = 0x05,
+  SET_ALARM    = 0x06,
 } Commands;
-
-typedef enum {
-  RESP_SUCCESS = 0x00,
-  RESP_CMD_UNKNOWN = 0x01,
-  RESP_SIG_INVALID = 0x02,
-  RESP_CMD_ERROR = 0x03
-} Responses;
 
 
 Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent)
@@ -37,34 +25,26 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
   _port.open(QIODevice::ReadWrite);
   if (! _port.isOpen()) { return; }
 
-  // First, get SALT
-  if (! _write(GET_SALT)) { return; }
-  if (! _read(_salt, 8)) { return; }
-
-  // Verify salt
-  if (! time().isValid()) { return; }
-
-  // Get N alarms
+  // First, get current value
   uint8_t tx_buffer[32];
   uint8_t rx_buffer[32];
-  tx_buffer[0] = GET_N_ALARMS;
-  if (! _send(tx_buffer, 1, rx_buffer, 2)) { return; }
+  tx_buffer[0] = GET_VALUE;
+  if (! _send(tx_buffer, 1, rx_buffer, 1)) { return; }
 
-  uint8_t nalarms = rx_buffer[1];
-  _alarms.resize(nalarms);
-  for (size_t i=0; i<nalarms; i++) {
+  _alarms.resize(7);
+  for (size_t i=0; i<7; i++) {
     // Get i-th alarm setting
     tx_buffer[0] = GET_ALARM; tx_buffer[1] = i;
-    _send(tx_buffer, 2, rx_buffer, 4);
-    bool enabled  = rx_buffer[1] & 0x01;
-    int dayofweek = (rx_buffer[1] >> 1) & 0x07;
-    int hour      = rx_buffer[2];
-    int minute    = rx_buffer[3];
+    if (! _send(tx_buffer, 2, rx_buffer, 3)) { return; }
+    uint8_t dayofweek = (rx_buffer[1] & 0x7f);
+    uint8_t hour      = rx_buffer[2];
+    uint8_t minute    = rx_buffer[3];
     // Check for consistency
-    if ((hour < 0) || (hour > 23)) { enabled = false; hour=0; }
-    if ((minute < 0) || (minute > 59)) { enabled = false; minute=0; }
+    if ((hour < 0) || (hour > 23)) { dayofweek = 0; hour=0; }
+    if ((minute < 0) || (minute > 59)) { dayofweek = 0; minute=0; }
+    if (0 != (dayofweek & 0x80)) { dayofweek = 0; }
     // Add to list of alarms
-    _alarms[i].enabled = enabled; _alarms[i].dayOfWeek = DayOfWeek(dayofweek);
+    _alarms[i].dowFlags = dayofweek;
     _alarms[i].time = QTime(hour, minute);
   }
 
@@ -92,7 +72,7 @@ Dawn::setAlarm(size_t idx, const Alarm &alarm) {
   uint8_t tx_buffer[5], rx_buffer[1];
   tx_buffer[0] = SET_ALARM;
   tx_buffer[1] = idx;
-  tx_buffer[2] = (uint8_t(alarm.dayOfWeek)<<1) | (alarm.enabled & 0x01);
+  tx_buffer[2] = alarm.dowFlags;
   tx_buffer[3] = alarm.time.hour();
   tx_buffer[4] = alarm.time.minute();
   if (! _send(tx_buffer, 5, rx_buffer, 1)) { return false; }
@@ -100,19 +80,19 @@ Dawn::setAlarm(size_t idx, const Alarm &alarm) {
   return true;
 }
 
-uint8_t
+uint16_t
 Dawn::value() {
   uint8_t tx[1], rx[2];
   tx[0] = GET_VALUE;
   if (! _send(tx, 1, rx, 2)) { return false; }
-  return rx[1];
+  return (uint16_t(rx[0])<<8) | rx[1];
 }
 
 bool
-Dawn::setValue(uint8_t value) {
-  uint8_t tx[2], rx[1];
-  tx[0] = SET_VALUE; tx[1] = value;
-  return _send(tx, 2, rx, 1);
+Dawn::setValue(uint16_t value) {
+  uint8_t tx[3], rx[1];
+  tx[0] = SET_VALUE; tx[1] = (value>>8); tx[2] = (value & 0xff);
+  return _send(tx, 3, rx, 1);
 }
 
 QDateTime
@@ -120,7 +100,7 @@ Dawn::time() {
   uint8_t tx[1], rx[8];
   tx[0] = GET_TIME;
   if (! _send(tx, 1, rx, 8)) { return QDateTime(); }
-  return QDateTime(QDate( *((uint16_t *)(rx+1)), rx[3], rx[4]),
+  return QDateTime(QDate( *((uint16_t *)(rx)), rx[2], rx[3]),
       QTime(rx[5], rx[6], rx[7]));
 }
 
@@ -131,46 +111,18 @@ Dawn::setTime() {
 
 bool
 Dawn::setTime(const QDateTime &time) {
-  uint8_t tx[8], rx[1];
+  uint8_t tx[9], rx[1];
   tx[0] = SET_TIME;
   *((uint16_t *)(tx+1)) = time.date().year();
   tx[3] = time.date().month();
   tx[4] = time.date().day();
-  tx[5] = time.time().hour();
-  tx[6] = time.time().minute();
-  tx[7] = time.time().second();
-  return _send(tx, 8, rx, 1);
+  tx[5] = time.date().dayOfWeek();
+  tx[6] = time.time().hour();
+  tx[7] = time.time().minute();
+  tx[8] = time.time().second();
+  return _send(tx, 9, rx, 1);
 }
 
-uint8_t
-Dawn::maxValue() {
-  uint8_t tx[1], rx[2];
-  tx[0] = GET_MAX_DIM;
-  if (! _send(tx, 1, rx, 2)) { return 0; }
-  return rx[1];
-}
-
-bool
-Dawn::setMaxValue(uint8_t value) {
-  uint8_t tx[2], rx[1];
-  tx[0] = SET_MAX_DIM; tx[1] = value;
-  return _send(tx, 2, rx, 1);
-}
-
-uint8_t
-Dawn::duration() {
-  uint8_t tx[1], rx[2];
-  tx[0] = GET_DIM_DUR;
-  if (! _send(tx, 1, rx, 2)) { return 0; }
-  return rx[1];
-}
-
-bool
-Dawn::setDuration(uint8_t dur) {
-  uint8_t tx[2], rx[1];
-  tx[0] = SET_DIM_DUR; tx[1] = dur;
-  return _send(tx, 2, rx, 1);
-}
 
 int
 Dawn::rowCount(const QModelIndex &parent) const {
@@ -198,29 +150,25 @@ Dawn::data(const QModelIndex &index, int role) const
   Alarm alarm = this->alarm(index.row());
   // Dispatch
   if (Qt::DisplayRole == role) {
-    if (1 == index.column()) {
-      switch (alarm.dayOfWeek) {
-      case Dawn::EVERYDAY:  return tr("Every day");
-      case Dawn::SUNDAY:    return tr("Sunday");
-      case Dawn::MONDAY:    return tr("Monday");
-      case Dawn::TUESDAY:   return tr("Tuesday");
-      case Dawn::WEDNESDAY: return tr("Wednesday");
-      case Dawn::THURSDAY:  return tr("Thursday");
-      case Dawn::FRIDAY:    return tr("Friday");
-      case Dawn::SATURDAY:  return tr("Saturday");
-      }
+    if (0 == index.column()) {
+      QStringList repr;
+      if (Dawn::MONDAY == (alarm.dowFlags & Dawn::MONDAY)) { repr << tr("Monday"); }
+      if (Dawn::TUESDAY == (alarm.dowFlags & Dawn::TUESDAY)) { repr << tr("Tuesday"); }
+      if (Dawn::WEDNESDAY == (alarm.dowFlags & Dawn::WEDNESDAY)) { repr << tr("Wednesday"); }
+      if (Dawn::THURSDAY == (alarm.dowFlags & Dawn::THURSDAY)) { repr << tr("Thursday"); }
+      if (Dawn::FRIDAY == (alarm.dowFlags & Dawn::FRIDAY)) { repr << tr("Friday"); }
+      if (Dawn::SATURDAY == (alarm.dowFlags & Dawn::SATURDAY)) { repr << tr("Saturday"); }
+      if (Dawn::SUNDAY == (alarm.dowFlags & Dawn::SUNDAY)) { repr << tr("Sunday"); }
+      if (0b1111111 == alarm.dowFlags) { repr.clear(); repr << tr("Every day"); }
+      if (0b1000001 == alarm.dowFlags) { repr.clear(); repr << tr("Weekend"); }
+      if (0b0111110 == alarm.dowFlags) { repr.clear(); repr << tr("Work day"); }
     }
-    if (2 == index.column()) {
+    if (1 == index.column()) {
       return alarm.time.toString();
     }
   } else if (Qt::EditRole == role) {
-    if (0 == index.column()) { return alarm.enabled; }
-    if (1 == index.column()) { return int(alarm.dayOfWeek); }
-    if (2 == index.column()) { return alarm.time; }
-  } else if (Qt::CheckStateRole == role) {
-    if (0 == index.column()) {
-      return alarm.enabled ? Qt::Checked : Qt::Unchecked;
-    }
+    if (0 == index.column()) { return int(alarm.dowFlags); }
+    if (1 == index.column()) { return alarm.time; }
   }
   return QVariant();
 }
@@ -233,10 +181,8 @@ Dawn::setData(const QModelIndex &index, const QVariant &value, int role) {
   Alarm alarm = this->alarm(index.row());
   // Update config
   if (Qt::EditRole == role) {
-    if (1 == index.column()) { alarm.dayOfWeek = DayOfWeek(value.toUInt()); }
-    if (2 == index.column()) { alarm.time = value.toTime(); }
-  } else if (Qt::CheckStateRole == role) {
-    if (0 == index.column()) { alarm.enabled = value.toBool(); }
+    if (0 == index.column()) { alarm.dowFlags = uint8_t(value.toUInt()); }
+    if (1 == index.column()) { alarm.time = value.toTime(); }
   } else {
     return false;
   }
@@ -286,20 +232,8 @@ Dawn::_sign(uint8_t *buffer, size_t len) {
 
 void
 Dawn::_sign(uint8_t *buffer, size_t len, uint8_t *sig) {
-  memcpy(sig, _salt, 8);
+  memset(sig, 0, 8);
   siphash24_cbc_mac(sig, buffer, len, _secret);
-}
-
-bool
-Dawn::_verify(uint8_t *buffer, size_t len) {
-  return _verify(buffer, len, buffer+len);
-}
-
-bool
-Dawn::_verify(uint8_t *buffer, size_t len, uint8_t *sig) {
-  uint8_t osign[8];
-  _sign(buffer, len, osign);
-  return 0==memcmp(osign, sig, 8);
 }
 
 bool
@@ -308,18 +242,6 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   memcpy(tx_buffer, cmd, cmd_len);
   _sign(tx_buffer, cmd_len);
   if (! _write(tx_buffer, cmd_len+8)) { return false; }
-
-  uint8_t rx_buffer[resp_len+8];
-  if (! _read(rx_buffer, 1)) { return false; }
-  if (RESP_SUCCESS != rx_buffer[0]) { return false; }
-
-  if (! _read(rx_buffer, resp_len+7)) { return false; }
-  // Update IV
-  memcpy(_salt, tx_buffer+cmd_len, 8);
-  // Verify response
-  if (! _verify(rx_buffer, resp_len)) { return false; }
-  memcpy(resp, rx_buffer, resp_len);
-  // Update IV
-  memcpy(_salt, rx_buffer+resp_len, 8);
+  if (! _read(resp, resp_len)) { return false; }
   return true;
 }

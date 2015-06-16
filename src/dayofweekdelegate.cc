@@ -13,14 +13,14 @@ DayOfWeekDelegate::createEditor(
     QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
   QComboBox *box = new QComboBox(parent);
-  box->addItem(tr("Every day"), Dawn::EVERYDAY);
-  box->addItem(tr("Sunday"), Dawn::SUNDAY);
+  box->addItem(tr("Every day"), 0x7f);
   box->addItem(tr("Monday"), Dawn::MONDAY);
   box->addItem(tr("Tuesday"), Dawn::TUESDAY);
   box->addItem(tr("Wednesday"), Dawn::WEDNESDAY);
   box->addItem(tr("Thursday"), Dawn::THURSDAY);
   box->addItem(tr("Friday"), Dawn::FRIDAY);
   box->addItem(tr("Saturday"), Dawn::SATURDAY);
+  box->addItem(tr("Sunday"), Dawn::SUNDAY);
   return box;
 }
 
