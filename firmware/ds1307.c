@@ -10,12 +10,12 @@ inline uint8_t bcd2dec(uint8_t byte) {
 }
 
 void
-DS1307_init() {
+ds1307_init() {
   i2c_init();
 }
 
 void
-DS1307_read(DateTime *datetime) {
+ds1307_read(DateTime *datetime) {
    uint8_t data = 0;
 
    // First we initial the pointer register to address 0x00
@@ -69,7 +69,7 @@ DS1307_read(DateTime *datetime) {
 }
 
 void
-DS1307_write(DateTime *datetime) {
+ds1307_write(DateTime *datetime) {
   // Start the I2C Write Transmission
   i2c_start(DS1307_ID, DS1307_ADDR, TW_WRITE);
   // Start from Address 0x00

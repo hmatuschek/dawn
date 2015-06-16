@@ -16,9 +16,9 @@ typedef struct {
   uint8_t  second;
 } DateTime;
 
-void DS1307_init();
-void DS1307_read(DateTime *datetime);
-void DS1307_write(DateTime *datetime);
+void ds1307_init();
+void ds1307_read(DateTime *datetime);
+void ds1307_write(DateTime *datetime);
 
 
 #endif // __LAMPE_DS1307_H__

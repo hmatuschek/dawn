@@ -2,7 +2,7 @@
 #include <avr/io.h>
 
 void
-PWM_init() {
+pwm_init() {
   // PB1 is now an output
   DDRB |= (1 << DDB1);
   // Set value to 0
@@ -18,6 +18,6 @@ PWM_init() {
 
 
 void
-PWM_set(uint16_t value) {
+pwm_set(uint16_t value) {
   OCR1A = value;
 }

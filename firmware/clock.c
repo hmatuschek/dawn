@@ -74,10 +74,10 @@ clock_init() {
   clock.ticks = 0;
 
   gpio_init();
-  PWM_init();
+  pwm_init();
 
-  DS1307_init();
-  DS1307_read((DateTime *) &clock.datetime);
+  ds1307_init();
+  ds1307_read((DateTime *) &clock.datetime);
 
   TCCR0 = (1<<CS02)|(1<<CS00);    // Use maximum prescaller: Clk/1024
   TCNT0  = 0x94;                  // Start counter from 0x94, overflow at 10 mSec
@@ -105,7 +105,7 @@ uint16_t clock_get_value() {
 
 void clock_set_value(uint16_t value) {
   clock.value = value;
-  PWM_set(clock.value);
+  pwm_set(clock.value);
 }
 
 void clock_get_datetime(DateTime *datetime) {
@@ -114,7 +114,7 @@ void clock_get_datetime(DateTime *datetime) {
 
 void clock_set_datetime(DateTime *datetime) {
   memcpy((DateTime *) &clock.datetime, datetime, sizeof(clock.datetime));
-  DS1307_write((DateTime *) &clock.datetime);
+  ds1307_write((DateTime *) &clock.datetime);
 }
 
 void clock_set_alarm(uint8_t idx, Alarm *alarm) {
@@ -139,7 +139,7 @@ ISR(TIMER0_OVF_vect) {
   // Every second
   if (clock.ticks == 100) {
     clock.ticks = 0;
-    DS1307_read((DateTime *) &clock.datetime);
+    ds1307_read((DateTime *) &clock.datetime);
     // Check for alarm if enabled (pin0 -> high)
     if ( gpio_pin(0) && (0x00ff > clock.value) && alarm_match() ) {
       clock.state = CLOCK_ALARM;
@@ -149,7 +149,7 @@ ISR(TIMER0_OVF_vect) {
   // Update pwm value
   if ((clock.ticks % 5) && (CLOCK_ALARM == clock.state)) {
     if (0xFFFF > clock.value) { clock.value++; }
-    PWM_set(clock_map_dawn_func(clock.value));
+    pwm_set(clock_map_dawn_func(clock.value));
   }
 
   // Check down key:
@@ -158,14 +158,14 @@ ISR(TIMER0_OVF_vect) {
     // Interrupt alarm
     if (CLOCK_ALARM == clock.state) { clock.state = CLOCK_WAIT; }
     // Switch off
-    clock.value = 0; PWM_set(clock.value);
+    clock.value = 0; pwm_set(clock.value);
     break;
   case KEY_HOLD:
     // Interrupt alarm
     if (CLOCK_ALARM == clock.state) { clock.state = CLOCK_WAIT; }
     // Decrease current value
     if (clock.value) { clock.value--; }
-    PWM_set(clock.value);
+    pwm_set(clock.value);
     break;
   case KEY_NONE:
     break;
@@ -177,14 +177,14 @@ ISR(TIMER0_OVF_vect) {
     // Interrupt alarm
     if (CLOCK_ALARM == clock.state) { clock.state = CLOCK_WAIT; }
     // Switch on
-    clock.value = 0xffff; PWM_set(clock.value);
+    clock.value = 0xffff; pwm_set(clock.value);
     break;
   case KEY_HOLD:
     // Interrupt alarm
     if (CLOCK_ALARM == clock.state) { clock.state = CLOCK_WAIT; }
     // increment current value
     if (0xffff > clock.value) { clock.value++; }
-    PWM_set(clock.value);
+    pwm_set(clock.value);
     break;
   case KEY_NONE:
     break;
