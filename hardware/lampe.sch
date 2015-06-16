@@ -9588,8 +9588,9 @@ manufacturer Thermalloy/distributor Farnell</description>
 <text x="132.08" y="-43.18" size="1.778" layer="91">Rges = 0.65/Imax</text>
 <text x="134.62" y="-5.08" size="1.778" layer="91">2.9V @ 700mA, 240lm
 conrad: 182695</text>
-<text x="101.6" y="-12.7" size="1.778" layer="91">18K/W, TO-220
+<text x="99.06" y="-12.7" size="1.778" layer="91">18K/W, TO-220
 conrad: 183971</text>
+<text x="86.36" y="-12.7" size="1.778" layer="91">3V</text>
 </plain>
 <instances>
 <instance part="P+6" gate="1" x="-43.18" y="-33.02"/>

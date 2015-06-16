@@ -15,104 +15,92 @@
 #include <stdint.h>
 #include <string.h>
 #include "siphash24.h"
-#include "siphash_2_4_asm.h"
-#include <avr/io.h>
-#include <avr/pgmspace.h>
 
-unsigned const char v0_init[] PROGMEM = {0x73, 0x6f, 0x6d, 0x65, 0x70, 0x73, 0x65, 0x75};
-unsigned const char v1_init[] PROGMEM = {0x64, 0x6f, 0x72, 0x61, 0x6e, 0x64, 0x6f, 0x6d};
-unsigned const char v2_init[] PROGMEM = {0x6c, 0x79, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61};
-unsigned const char v3_init[] PROGMEM = {0x74, 0x65, 0x64, 0x62, 0x79, 0x74, 0x65, 0x73};
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint8_t u8;
 
-unsigned char v0[8];
-unsigned char v1[8];
-unsigned char v2[8];
-unsigned char v3[8];
+#define ROTL(x,b) (u64)( ((x) << (b)) | ( (x) >> (64 - (b))) )
 
-void siphash_round() {
-  add64le(v0,v1);
-  add64le(v2,v3);
-  rol_13bits(v1);
-  rol_16bits(v3);
-  xor64(v1, v0);
-  xor64(v3, v2);
-  rol_32bits(v0);
-  add64le(v2, v1);
-  add64le(v0, v3);
-  rol_17bits(v1);
-  rol_21bits(v3);
-  xor64(v1, v2);
-  xor64(v3, v0);
-  rol_32bits(v2);
-}
+#define U32TO8_LE(p, v)         \
+    (p)[0] = (u8)((v)      ); (p)[1] = (u8)((v) >>  8); \
+    (p)[2] = (u8)((v) >> 16); (p)[3] = (u8)((v) >> 24);
+
+#define U64TO8_LE(p, v)         \
+  U32TO8_LE((p),     (u32)((v)      ));   \
+  U32TO8_LE((p) + 4, (u32)((v) >> 32));
+
+#define U8TO64_LE(p) \
+  (((u64)((p)[0])      ) | \
+   ((u64)((p)[1]) <<  8) | \
+   ((u64)((p)[2]) << 16) | \
+   ((u64)((p)[3]) << 24) | \
+   ((u64)((p)[4]) << 32) | \
+   ((u64)((p)[5]) << 40) | \
+   ((u64)((p)[6]) << 48) | \
+   ((u64)((p)[7]) << 56))
+
+#define SIPROUND            \
+  do {              \
+    v0 += v1; v1=ROTL(v1,13); v1 ^= v0; v0=ROTL(v0,32); \
+    v2 += v3; v3=ROTL(v3,16); v3 ^= v2;     \
+    v0 += v3; v3=ROTL(v3,21); v3 ^= v0;     \
+    v2 += v1; v1=ROTL(v1,17); v1 ^= v2; v2=ROTL(v2,32); \
+  } while(0)
+
 
 /* SipHash-2-4 */
-void siphash24_hash_block(unsigned char *hash, const unsigned char *block, const unsigned char *key)
-{ 
-  unsigned char m[8];
-  
-  // Init...
-  memcpy_P(v0,v0_init,8);
-  memcpy_P(v1,v1_init,8);
-  memcpy_P(v2,v2_init,8);
-  memcpy_P(v3,v3_init,8);
+void
+siphash24_hash(unsigned char *hash, const unsigned char *block, const unsigned char *k)
+{
+  /* "somepseudorandomlygeneratedbytes" */
+  u64 v0 = 0x736f6d6570736575ULL;
+  u64 v1 = 0x646f72616e646f6dULL;
+  u64 v2 = 0x6c7967656e657261ULL;
+  u64 v3 = 0x7465646279746573ULL;
+  u64 k0 = U8TO64_LE( k );
+  u64 k1 = U8TO64_LE( k + 8 );
+  u64 m;
+  v3 ^= k1;
+  v2 ^= k0;
+  v1 ^= k1;
+  v0 ^= k0;
 
-  // now load first 8 bytes of the key reverse it and XOR with v0,v2
-  memcpy(m, key,8);
-  reverse64(m);
-  xor64(v0, m);
-  xor64(v2, m);
+  m = U8TO64_LE( block ) ^ U8TO64_LE(hash);
+  v3 ^= m;
+  SIPROUND;
+  SIPROUND;
+  v0 ^= m;
 
-  memcpy(m, key+8,8);
-  reverse64(m);
-  xor64(v1, m);
-  xor64(v3, m);
-  
-  // process a single block
-  int i=0;
-  for (; i<8; i++) { m[i] = block[7-i] ^ hash[7-i]; }
-  xor64(v3, m);
-  siphash_round();  
-  siphash_round();  
-  xor64(v0, m);
-  
-  // Finalize hash
-  xor_ff(v2);
-  siphash_round();
-  siphash_round();
-  siphash_round();
-  siphash_round();
-  xor64(v0, v1);
-  xor64(v0, v2);
-  xor64(v0, v3);
-  
-  // store hash
-  memcpy(hash, v0, 8);
-  reverse64(hash);
+  v2 ^= 0xff;
+  SIPROUND;
+  SIPROUND;
+  SIPROUND;
+  SIPROUND;
+  U64TO8_LE( hash, v0 ^ v1 ^ v2 ^ v3 );
 }
 
 
-
-
-/** Computes the CBC-MAC hash from the inlen bytes stored in @c in using the @c key and the current
- * @c hash value as the IV. The @c hash gets updated constantly. */
+/** Computes the CBC-MAC from the @c inlen bytes stored in @c in using the @c key and the
+ * current @c hash value as the IV. The @c hash gets updated constantly. */
 void siphash24_cbc_mac(unsigned char *hash,
-                       const unsigned char *in, unsigned int inlen, const unsigned char *key) 
-{  
-  unsigned int rem = inlen;
-  // Process data in 64bit blocks
+                       const unsigned char *in, unsigned long long inlen,
+                       const unsigned char *key)
+{
+  // Process first 64-bit blocks
+  unsigned long long rem = inlen;
   while (rem >= 8) {
-    siphash24_hash_block(hash, in, key);
+    siphash24_hash(hash, in, key);
     rem -= 8; in += 8;
   }
-  
+
   unsigned char block[8];
-  unsigned int i=0;
-  // Add remaining elements
-  for (; i<rem; i++) { block[i] = in[i]; }
-  // 0-pad to 7 bytes
-  for (i=rem; i<7; i++) { block[i] = 0; }
-  // Store length % 256 as 8-th byte
+  // store remaining data
+  memcpy(block, in, rem);
+  // 0-pad that up to 7-bytes
+  memset(block+rem, 0, 7-rem);
+  // store inlen mod 256 at last byte
   block[7] = inlen;
-  siphash24_hash_block(hash, block, key);
+  // Last hash
+  siphash24_hash(hash, block, key);
 }
