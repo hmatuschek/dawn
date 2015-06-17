@@ -1,4 +1,4 @@
-from random import Random
+from os import urandom
 from string import Template
 import sys
 
@@ -14,7 +14,7 @@ extern "C" {
 #define PROGMEM
 #endif
 
-static uint8_t secret[] = { $key };
+static const uint8_t secret[] PROGMEM = { $key };
 
 #ifdef __cplusplus
 }
@@ -24,7 +24,5 @@ static uint8_t secret[] = { $key };
 """
 
 
-rand = Random();
-rand.seed();
 open(sys.argv[1], "w").write(Template(template).substitute(
-  key=", ".join(map(lambda i: hex(rand.randint(0,255)), range(16)))))
+  key=", ".join(map(lambda x: hex(ord(x)), urandom(16)))))

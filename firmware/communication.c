@@ -1,6 +1,9 @@
 #include "communication.h"
 #include "uart.h"
 #include "siphash24.h"
+
+// Needs to be included before secret.
+#include <avr/pgmspace.h>
 #include "secret.h"
 
 void
@@ -8,20 +11,9 @@ comm_init() {
   uart_init();
 }
 
-
-void
-comm_wait(Command *cmd) {
-  while (1) {
-    cmd->command = uart_getc();
-    if ((cmd->command>CMD_MIN) && (cmd->command<CMD_MAX)) {
-      if (comm_get(cmd)) { return; }
-    }
-  }
-}
-
-
-uint8_t
-comm_get(Command *cmd) {
+// Internal used function to read complete message once the
+// command ID is known.
+uint8_t __comm_get(Command *cmd) {
   uint8_t hash[8] = {0,0,0,0,0,0,0,0};
 
   uint16_t size = 0;
@@ -47,6 +39,17 @@ comm_get(Command *cmd) {
     correct = ( correct && (hash[i]==cmd->mac[i]) );
   }
   return correct;
+}
+
+
+void
+comm_wait(Command *cmd) {
+  while (1) {
+    cmd->command = uart_getc();
+    if ((cmd->command>CMD_MIN) && (cmd->command<CMD_MAX)) {
+      if (__comm_get(cmd)) { return; }
+    }
+  }
 }
 
 void

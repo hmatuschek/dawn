@@ -9,7 +9,12 @@
 #include <avr/eeprom.h>
 
 #include <string.h>
+
 #include "dawnfunction.h"
+
+
+// Specifies the maximum duration of the alarm (2h)
+#define CLOCK_ALARM_MAX_SEC 7200
 
 typedef enum {
   CLOCK_WAIT,
@@ -21,6 +26,7 @@ typedef struct {
   uint16_t   value;
   uint16_t   increment;
   uint16_t   ticks;
+  uint16_t   alarmSeconds;
   DateTime   datetime;
   Alarm      alarm[CLOCK_N_ALARM];
 } Clock;
@@ -29,7 +35,7 @@ typedef struct {
 volatile static Clock clock;
 
 // Persistent storage of alarm settings
-Alarm storedAlarm[7] EEMEM;
+Alarm storedAlarm[7] EEMEM = { {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0} };
 
 
 // interpolation function for the dawn function table
@@ -130,13 +136,25 @@ ISR(TIMER0_OVF_vect) {
     clock.ticks = 0;
     // Update date and time
     ds1307_read((DateTime *) &clock.datetime);
+    // If alarm -> update alarm seconds counter
+    if (CLOCK_ALARM == clock.state) {
+      clock.alarmSeconds++;
+      if (CLOCK_ALARM_MAX_SEC <= clock.alarmSeconds) {
+        clock.state = CLOCK_WAIT;
+        clock.value = 0;
+        pwm_set(clock.value);
+      }
+    }
     // Check for alarm if enabled (pin0 -> high)
     if ( gpio_pin(0) && (0x00ff > clock.value) && alarm_match() ) {
+      // Start alarm
       clock.state = CLOCK_ALARM;
+      // Start
+      clock.alarmSeconds = 0;
     }
   }
 
-  // Update pwm value
+  // Every 50ms -> update dawn table index
   if ((clock.ticks % 5) && (CLOCK_ALARM == clock.state)) {
     if (0xFFFF > clock.value) { clock.value++; }
     pwm_set(clock_map_dawn_func(clock.value));

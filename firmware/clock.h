@@ -7,10 +7,11 @@
 #define CLOCK_N_ALARM 7
 #endif
 
+/** Alarm selection. */
 typedef struct {
-  uint8_t select;
-  uint8_t hour;
-  uint8_t minute;
+  uint8_t select;  ///< Specifies the days of the week at which the alarm is active.
+  uint8_t hour;    ///< Specifies the hour of the alarm.
+  uint8_t minute;  ///< Specifies the minute of the alarm.
 } Alarm;
 
 /** Initializes the clock (alarm, pwm, RTC, keys etc.). */
