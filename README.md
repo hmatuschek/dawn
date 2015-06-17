@@ -4,16 +4,18 @@ This is a simple bluetooth-controlled bedside light which can act as a dawn simu
 
 ## Hardware
 
-The hardware ([schematics](https://github.com/hmatuschek/dawn/blob/master/doc/lampe_brd.pdf) can be found in the hardware/ directory) consists of a high-power LED,
+The hardware ([schematics](https://github.com/hmatuschek/dawn/blob/master/doc/lampe_brd.pdf) 
+can be found in the hardware/ directory) consists of a high-power LED,
 a current regulator (BUZ11 + 2 BC547), an ATMega168 MCU, a real-time clock (DS1307) with
-back-up battery and a serial <-> bluetooth interface module (JY-MCU).
+back-up battery and a RS232 bluetooth interface module (JY-MCU).
 
-The [circuit](https://github.com/hmatuschek/dawn/blob/master/doc/lampe_brd.pdf) can be adopted easily to different LEDs by changing the value of R25 and/or R30 such
+The [circuit](https://github.com/hmatuschek/dawn/blob/master/doc/lampe_brd.pdf) can be adopted
+easily to different LEDs by changing the value of R25 and/or R30 such
 that R25||R30 = 0.6/Imax, where Imax is the maximum current through the LED. Please be aware that
 the MOSFET Q4 as well as the LED may need some cooling.
 
 The brightness of the LED will be controlled by the PWM output (pin 15) of the ATMega
-through the low-pass (R27,C1).
+through the low-pass filter (R27,C1).
 
 The firmware for the ATMega168 can be found in the firmware/ directory.
 
@@ -26,19 +28,20 @@ controll the dawn simulator.
 
 ## Communication protocol
 
-Basic structure command structure
- +--------+-- ... --+-- ... --+
- |  CMD   | PAYLOAD |   MAC   |
- +--------+---... --+-- ... --+
+Basic message structure
+
+    +--------+-- ... --+-- ... --+
+    |  CMD   | PAYLOAD |   MAC   |
+    +--------+---... --+-- ... --+
 
 Each command message consists of a 8-bit command field, an optional Payload (variable size)
 and a message authentication code (64 bit).
 
-The serial <-> bluetooth module has only a 4-digit pin for the access control. Hence some
-additional measures are needed for the access control. Every message send to the device is
-therefore authenticated using a simple MAC. The MAC is computed over the CMD and PAYLOAD fields
-of the message using the SIPHASH(2,4) function with a shared secret. This does not provide
-a very high level of security but is sufficient for a bedside light.
+The RS232 bluetooth module has only a 4-digit PIN for the access control. Hence some
+additional measures are needed. Every message send to the device is therefore authenticated
+using a simple MAC. The MAC is computed over the CMD and PAYLOAD fields of the message 
+using the SIPHASH(2,4) function with a shared secret. This does not provide a very high 
+level of security but may be considered sufficient for a bedside light.
 
 
 ### MAC algorithm
