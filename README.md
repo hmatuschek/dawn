@@ -17,8 +17,7 @@ easily to different LEDs by changing the value of R25 and/or R30 such
 that R25||R30 = 0.6/Imax, where Imax is the maximum current through the LED. Please be aware that
 the MOSFET Q4 as well as the LED may need some cooling.
 
-The brightness of the LED will be controlled by the PWM output (pin 15) of the ATMega
-through the low-pass filter (R27,C1).
+The brightness of the LED will be controlled by the PWM output (pin 15) of the ATMega.
 
 The firmware for the ATMega168 can be found in the firmware/ directory.
 
