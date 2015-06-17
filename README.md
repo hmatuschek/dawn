@@ -4,11 +4,11 @@ This is a simple bluetooth-controlled bedside light which can act as a dawn simu
 
 ## Hardware
 
-The hardware (schematics can be found in the hardware/ directory) consists of a high-power LED,
+The hardware ([schematics](https://github.com/hmatuschek/dawn/blob/master/doc/lampe_brd.pdf) can be found in the hardware/ directory) consists of a high-power LED,
 a current regulator (BUZ11 + 2 BC547), an ATMega168 MCU, a real-time clock (DS1307) with
 back-up battery and a serial <-> bluetooth interface module (JY-MCU).
 
-The circuit can be adopted easily to different LEDs by changing the value of R25 and/or R30 such
+The [circuit](https://github.com/hmatuschek/dawn/blob/master/doc/lampe_brd.pdf) can be adopted easily to different LEDs by changing the value of R25 and/or R30 such
 that R25||R30 = 0.6/Imax, where Imax is the maximum current through the LED. Please be aware that
 the MOSFET Q4 as well as the LED may need some cooling.
 
