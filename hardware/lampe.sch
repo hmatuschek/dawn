@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.1.0">
+<eagle version="7.2.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -18470,12 +18470,12 @@ diameter 3 mm, horizontal, grid 12.7 mm</description>
 <sheets>
 <sheet>
 <plain>
-<text x="142.24" y="-68.58" size="1.778" layer="97">2.9V @ 700mA, 240lm
+<text x="139.7" y="-63.5" size="1.778" layer="97">2.9V @ 700mA, 240lm
 conrad: 182695</text>
-<text x="142.24" y="-43.18" size="1.778" layer="97">18K/W, TO-220
+<text x="111.76" y="-27.94" size="1.778" layer="97">18K/W, TO-220
 conrad: 183971</text>
 <text x="109.22" y="-25.4" size="1.778" layer="97" rot="R90">2.0-3.5V</text>
-<text x="139.7" y="-78.74" size="1.778" layer="97">R = 0.6/Imax</text>
+<text x="132.08" y="-81.28" size="1.778" layer="97">R = 0.6/Imax</text>
 </plain>
 <instances>
 <instance part="P+6" gate="1" x="-43.18" y="-33.02"/>
@@ -18502,8 +18502,8 @@ conrad: 183971</text>
 <instance part="C9" gate="G$1" x="66.04" y="-33.02"/>
 <instance part="GND18" gate="1" x="60.96" y="-43.18"/>
 <instance part="GND19" gate="1" x="66.04" y="-43.18"/>
-<instance part="P+12" gate="1" x="129.54" y="10.16"/>
-<instance part="GND20" gate="1" x="129.54" y="-5.08"/>
+<instance part="P+12" gate="1" x="144.78" y="12.7"/>
+<instance part="GND20" gate="1" x="144.78" y="-2.54"/>
 <instance part="R24" gate="G$1" x="116.84" y="-40.64"/>
 <instance part="Q4" gate="1" x="127" y="-38.1"/>
 <instance part="R25" gate="G$1" x="129.54" y="-73.66" rot="R90"/>
@@ -18519,10 +18519,10 @@ conrad: 183971</text>
 <instance part="R29" gate="G$1" x="109.22" y="-48.26" rot="R90"/>
 <instance part="GND27" gate="1" x="109.22" y="-58.42"/>
 <instance part="P+1" gate="1" x="93.98" y="-35.56"/>
-<instance part="P+2" gate="1" x="129.54" y="-15.24"/>
-<instance part="X1" gate="-1" x="134.62" y="0"/>
-<instance part="X1" gate="-2" x="134.62" y="5.08"/>
-<instance part="X2" gate="-1" x="147.32" y="-58.42"/>
+<instance part="P+2" gate="1" x="129.54" y="-12.7"/>
+<instance part="X1" gate="-1" x="149.86" y="2.54"/>
+<instance part="X1" gate="-2" x="149.86" y="7.62"/>
+<instance part="X2" gate="-1" x="147.32" y="-66.04"/>
 <instance part="X2" gate="-2" x="147.32" y="-50.8"/>
 <instance part="IC1" gate="G$1" x="-12.7" y="-30.48"/>
 <instance part="ISP1" gate="G$1" x="7.62" y="-78.74" rot="MR0"/>
@@ -18533,15 +18533,15 @@ conrad: 183971</text>
 <instance part="GND4" gate="1" x="-38.1" y="-17.78"/>
 <instance part="JP1" gate="A" x="43.18" y="-68.58" rot="R270"/>
 <instance part="GND5" gate="1" x="55.88" y="-71.12"/>
-<instance part="KK1" gate="G$1" x="119.38" y="-30.48"/>
+<instance part="KK1" gate="G$1" x="121.92" y="-33.02"/>
 <instance part="R1" gate="G$1" x="35.56" y="-2.54"/>
 <instance part="R2" gate="1" x="22.86" y="5.08"/>
 <instance part="P+5" gate="1" x="22.86" y="15.24"/>
 <instance part="GND6" gate="1" x="43.18" y="-7.62"/>
 <instance part="L1" gate="G$1" x="137.16" y="-50.8" rot="R90"/>
-<instance part="C1" gate="G$1" x="134.62" y="-25.4"/>
+<instance part="C1" gate="G$1" x="134.62" y="-22.86"/>
 <instance part="D1" gate="G$1" x="129.54" y="-55.88" rot="R90"/>
-<instance part="GND1" gate="1" x="134.62" y="-33.02"/>
+<instance part="GND1" gate="1" x="134.62" y="-30.48"/>
 <instance part="GND8" gate="1" x="129.54" y="-60.96"/>
 </instances>
 <busses>
@@ -18595,9 +18595,9 @@ conrad: 183971</text>
 </segment>
 <segment>
 <pinref part="P+12" gate="1" pin="+5V"/>
-<wire x1="129.54" y1="5.08" x2="129.54" y2="7.62" width="0.1524" layer="91"/>
+<wire x1="144.78" y1="7.62" x2="144.78" y2="10.16" width="0.1524" layer="91"/>
 <pinref part="X1" gate="-2" pin="KL"/>
-<wire x1="132.08" y1="5.08" x2="129.54" y2="5.08" width="0.1524" layer="91"/>
+<wire x1="147.32" y1="7.62" x2="144.78" y2="7.62" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="ISP1" gate="G$1" pin="VCC"/>
@@ -18623,12 +18623,12 @@ conrad: 183971</text>
 <segment>
 <pinref part="P+2" gate="1" pin="+5V"/>
 <pinref part="Q4" gate="1" pin="D"/>
-<wire x1="129.54" y1="-17.78" x2="129.54" y2="-20.32" width="0.1524" layer="91"/>
-<wire x1="129.54" y1="-20.32" x2="129.54" y2="-33.02" width="0.1524" layer="91"/>
-<wire x1="129.54" y1="-20.32" x2="134.62" y2="-20.32" width="0.1524" layer="91"/>
+<wire x1="129.54" y1="-15.24" x2="129.54" y2="-17.78" width="0.1524" layer="91"/>
+<wire x1="129.54" y1="-17.78" x2="129.54" y2="-33.02" width="0.1524" layer="91"/>
+<wire x1="129.54" y1="-17.78" x2="134.62" y2="-17.78" width="0.1524" layer="91"/>
 <pinref part="C1" gate="G$1" pin="+"/>
-<wire x1="134.62" y1="-20.32" x2="134.62" y2="-22.86" width="0.1524" layer="91"/>
-<junction x="129.54" y="-20.32"/>
+<wire x1="134.62" y1="-17.78" x2="134.62" y2="-20.32" width="0.1524" layer="91"/>
+<junction x="129.54" y="-17.78"/>
 </segment>
 </net>
 <net name="GND" class="0">
@@ -18690,9 +18690,9 @@ conrad: 183971</text>
 </segment>
 <segment>
 <pinref part="GND20" gate="1" pin="GND"/>
-<wire x1="129.54" y1="0" x2="129.54" y2="-2.54" width="0.1524" layer="91"/>
+<wire x1="144.78" y1="2.54" x2="144.78" y2="0" width="0.1524" layer="91"/>
 <pinref part="X1" gate="-1" pin="KL"/>
-<wire x1="132.08" y1="0" x2="129.54" y2="0" width="0.1524" layer="91"/>
+<wire x1="147.32" y1="2.54" x2="144.78" y2="2.54" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="ISP1" gate="G$1" pin="GND"/>
@@ -18835,10 +18835,8 @@ conrad: 183971</text>
 <wire x1="129.54" y1="-66.04" x2="129.54" y2="-68.58" width="0.1524" layer="91"/>
 <wire x1="121.92" y1="-66.04" x2="129.54" y2="-66.04" width="0.1524" layer="91"/>
 <junction x="129.54" y="-66.04"/>
-<wire x1="129.54" y1="-66.04" x2="137.16" y2="-66.04" width="0.1524" layer="91"/>
-<wire x1="137.16" y1="-58.42" x2="137.16" y2="-66.04" width="0.1524" layer="91"/>
+<wire x1="129.54" y1="-66.04" x2="144.78" y2="-66.04" width="0.1524" layer="91"/>
 <pinref part="X2" gate="-1" pin="KL"/>
-<wire x1="144.78" y1="-58.42" x2="137.16" y2="-58.42" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$40" class="0">
