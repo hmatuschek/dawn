@@ -4,17 +4,19 @@ project(dawn)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 include(InstallHeadersWithDirectory)
 
+option(SECRET "Specifies the shared secret (128bit/16byte random in hex)." OFF)
+
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5SerialPort REQUIRED)
+find_package(PythonInterp REQUIRED)
 
 ADD_DEFINITIONS(${Qt5Widgets_DEFINITIONS})
-
 INCLUDE_DIRECTORIES(${Qt5Core_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${Qt5Declarative_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${Qt5Widgets_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${Qt5SerialPort_INCLUDE_DIRS})
-
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src)
 
 LINK_DIRECTORIES(${PROJECT_BINARY_DIR}/src)
@@ -25,10 +27,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS} -
 set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
 set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ggdb")
-
-# Needed to generate shared secret and dawn function
-find_package(PythonInterp REQUIRED)
-INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
 
 # application sources...
 add_subdirectory(src)

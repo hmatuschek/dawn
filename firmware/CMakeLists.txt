@@ -31,7 +31,10 @@ add_definitions("-c")
 add_definitions("-std=gnu99")
 add_definitions("-Os")
 
-# sources
+
+##########################################################################
+# Source
+##########################################################################
 set(firmware_SOURCES main.c
     siphash24.c pwm.c i2c.c ds1307.c clock.c gpio.c uart.c communication.c)
 set(firmware_HEADERS
@@ -48,5 +51,10 @@ set_property(SOURCE communication.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_BINAR
 # Make sure dawn function gets generated
 set_property(SOURCE clock.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_BINARY_DIR}/dawnfunction.h)
 
+# !!! UGLY HACK TO GET RID OF "-rdynamic" flags. !!!
+set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
 # compile & link
 add_avr_executable(firmware ${firmware_SOURCES})
+avr_target_link_libraries(firmware ${AVR_C_LIB})

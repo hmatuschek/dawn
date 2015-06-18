@@ -68,7 +68,7 @@ clock_init() {
   ds1307_read((DateTime *) &clock.datetime);
 
   // Read alarm settings from EEPROM
-  eeprom_read_block(clock.alarm, storedAlarm, 7*sizeof(Alarm));
+  eeprom_read_block((Alarm *)clock.alarm, storedAlarm, 7*sizeof(Alarm));
 
   // Configure timer0 to trigger interrupt every 10ms
   TCCR0 = (1<<CS02)|(1<<CS00);    // Use maximum prescaller: Clk/1024
@@ -113,7 +113,7 @@ void clock_set_alarm(uint8_t idx, Alarm *alarm) {
   if (idx >= CLOCK_N_ALARM) { return; }
   memcpy((Alarm *) &clock.alarm[idx], alarm, sizeof(clock.alarm));
   // store alarm config into EEPROM
-  eeprom_write_block(clock.alarm, storedAlarm, 7*sizeof(Alarm));
+  eeprom_write_block((Alarm *)clock.alarm, storedAlarm, 7*sizeof(Alarm));
 }
 
 void clock_get_alarm(uint8_t idx, Alarm *alarm) {

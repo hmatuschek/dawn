@@ -7,6 +7,9 @@
 #include <QTime>
 #include <QByteArray>
 
+#include <inttypes.h>
+
+
 /** Proxy to the hardware. */
 class Dawn : public QAbstractTableModel
 {

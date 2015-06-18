@@ -51,6 +51,40 @@ set(CMAKE_C_COMPILER ${AVR_CC})
 set(CMAKE_CXX_COMPILER ${AVR_CXX})
 
 ##########################################################################
+# some cmake cross-compile necessities
+##########################################################################
+if(DEFINED ENV{AVR_FIND_ROOT_PATH})
+    set(AVR_FIND_ROOT_PATH $ENV{AVR_FIND_ROOT_PATH})
+else(DEFINED ENV{AVR_FIND_ROOT_PATH})
+    if(EXISTS "/opt/local/avr")
+      set(AVR_FIND_ROOT_PATH "/opt/local/avr")
+    elseif(EXISTS "/usr/avr")
+      set(AVR_FIND_ROOT_PATH "/usr/avr")
+    elseif(EXISTS "/usr/lib/avr")
+      set(AVR_FIND_ROOT_PATH "/usr/lib/avr")
+    else(EXISTS "/opt/local/avr")
+      message(FATAL_ERROR "Please set AVR_FIND_ROOT_PATH in your environment.")
+    endif(EXISTS "/opt/local/avr")
+endif(DEFINED ENV{AVR_FIND_ROOT_PATH})
+set(AVR_SYSTEM_INCLUDE_PATH "${AVR_FIND_ROOT_PATH}/include")
+set(AVR_SYSTEM_LIBRARY_PATH "${AVR_FIND_ROOT_PATH}/lib")
+
+##########################################################################
+# status messages for generating
+##########################################################################
+message(STATUS "Set AVR_FIND_ROOT_PATH to ${AVR_FIND_ROOT_PATH}")
+message(STATUS "Set AVR_SYSTEM_INCLUDE_PATH to ${AVR_SYSTEM_INCLUDE_PATH}")
+message(STATUS "Set AVR_SYSTEM_LIBRARY_PATH to ${AVR_SYSTEM_LIBRARY_PATH}")
+
+##########################################################################
+# get avr-libc
+##########################################################################
+find_library(AVR_C_LIB c
+             PATHS ${AVR_SYSTEM_LIBRARY_PATH}
+             NO_DEFAULT_PATH)
+message(STATUS "avr-libc: ${AVR_C_LIB}")
+
+##########################################################################
 # some necessary tools and variables for AVR builds, which may not
 # defined yet
 # - AVR_UPLOADTOOL

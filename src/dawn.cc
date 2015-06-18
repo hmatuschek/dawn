@@ -3,6 +3,7 @@
 #include <QTextStream>
 #include <iostream>
 #include "siphash24.h"
+#include <inttypes.h>
 
 typedef enum {
   GET_VALUE    = 0x01,
@@ -97,11 +98,19 @@ Dawn::setValue(uint16_t value) {
 
 QDateTime
 Dawn::time() {
-  uint8_t tx[1], rx[8];
+  // Allocat buffers
+  uint8_t  tx[1], rx[8];
+  // Deref response fields
+  uint16_t *year=(uint16_t *)rx;
+  uint8_t  *month=rx+2, *day=rx+3,
+      *hour=rx+5, *minute=rx+6, *second=rx+7;
+  // assemble request
   tx[0] = GET_TIME;
+  // send/receive
   if (! _send(tx, 1, rx, 8)) { return QDateTime(); }
-  return QDateTime(QDate( *((uint16_t *)(rx)), rx[2], rx[3]),
-      QTime(rx[5], rx[6], rx[7]));
+  // unpack.
+  return QDateTime(QDate( *year, *month, *day),
+      QTime(*hour, *minute, *second));
 }
 
 bool
@@ -145,7 +154,7 @@ Dawn::flags(const QModelIndex &index) const {
 QVariant
 Dawn::data(const QModelIndex &index, int role) const
 {
-  if (index.row() >= numAlarms()) { QVariant(); }
+  if (index.row() >= int(numAlarms())) { QVariant(); }
   // Get alarm config
   Alarm alarm = this->alarm(index.row());
   // Dispatch
@@ -176,7 +185,7 @@ Dawn::data(const QModelIndex &index, int role) const
 bool
 Dawn::setData(const QModelIndex &index, const QVariant &value, int role) {
   if (index.column() > 2) { return false; }
-  if (index.row() >= numAlarms()) { return false; }
+  if (index.row() >= int(numAlarms())) { return false; }
   // Get current config
   Alarm alarm = this->alarm(index.row());
   // Update config
@@ -202,7 +211,7 @@ Dawn::_write(uint8_t c) {
 
 bool
 Dawn::_write(uint8_t *buffer, size_t len) {
-  bool res = (len == _port.write((char *)buffer, len));
+  bool res = (len == size_t(_port.write((char *)buffer, len)));
   _port.flush();
   return res;
 }
