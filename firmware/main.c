@@ -4,6 +4,7 @@
 
 #include "clock.h"
 #include "communication.h"
+#include "temp.h"
 #include <avr/interrupt.h>
 
 
@@ -13,6 +14,8 @@ int main(void)
   clock_init();
   // Initialize UART interface
   comm_init();
+  // Init ADC
+  temp_init();
 
   // Enable interrupts
   sei();
@@ -47,6 +50,9 @@ int main(void)
     case SET_ALARM:
       clock_set_alarm(cmd.payload.alarm.alarmIdx, &cmd.payload.alarm.alarm);
       comm_send_ok();
+      break;
+    case GET_TEMP:
+      comm_send_temp(temp_get_core(), temp_get_external());
       break;
     default:
       break;

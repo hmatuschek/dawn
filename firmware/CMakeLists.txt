@@ -4,7 +4,7 @@ set(AVR_PROGRAMMER avrispmkII)
 set(AVR_UPLOADTOOL_PORT usb)
 
 # Specify CPU
-set(AVR_MCU atmega16)
+set(AVR_MCU atmega328p)
 
 # Specify fuse magic
 set(AVR_H_FUSE 0xdf)
@@ -36,9 +36,9 @@ add_definitions("-Os")
 # Source
 ##########################################################################
 set(firmware_SOURCES main.c
-    siphash24.c pwm.c i2c.c ds1307.c clock.c gpio.c uart.c communication.c)
+    siphash24.c pwm.c i2c.c ds1307.c clock.c gpio.c uart.c communication.c temp.c)
 set(firmware_HEADERS
-    siphash24.h pwm.h i2c.h ds1307.h clock.h gpio.h uart.h communication.h)
+    siphash24.h pwm.h i2c.h ds1307.h clock.h gpio.h uart.h communication.h temp.h)
 
 # Generate LUT for dawn function
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/dawnfunction.h

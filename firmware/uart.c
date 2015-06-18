@@ -16,9 +16,9 @@ volatile static uint16_t tx_buffer_idx_out = 0;
 
 void
 uart_init() {
-  UBRRH = UBRR_VAL >> 8;
-  UBRRL = UBRR_VAL & 0xFF;
-  UCSRB = (1<<RXCIE) | (1<<RXEN) | (1<<TXEN);
+  UBRR0H = UBRR_VAL >> 8;
+  UBRR0L = UBRR_VAL & 0xFF;
+  UCSR0B = (1<<RXCIE0) | (1<<RXEN0) | (1<<TXEN0);
 
   rx_buffer_idx_in = rx_buffer_idx_out = 0;
   tx_buffer_idx_in = tx_buffer_idx_out = 0;
@@ -43,7 +43,7 @@ uart_write(const uint8_t *buffer, uint16_t n) {
     tx_buffer_idx_in = ( (tx_buffer_idx_in+1) % UART_BUFFER_SIZE);
   }
   // enable TX interrupt
-  UCSRB |= (1<<UDRIE);
+  UCSR0B |= (1<<UDRIE0);
   return n;
 }
 
@@ -99,10 +99,10 @@ uart_getc() {
 
 
 // On char received
-ISR(USART_RXC_vect)
+ISR(USART_RX_vect)
 {
   // Get char
-  uint8_t nextChar = UDR;
+  uint8_t nextChar = UDR0;
   // Store in buffer
   rx_buffer[rx_buffer_idx_in] = nextChar;
   // Increment in buffer pointer
@@ -118,12 +118,12 @@ ISR(USART_RXC_vect)
 ISR(USART_UDRE_vect) {
   if (tx_buffer_idx_in == tx_buffer_idx_out) {
     // if buffer is empty -> diable TX interrupt
-    UCSRB &= ~(1<<UDRIE);
+    UCSR0B &= ~(1<<UDRIE0);
   } else {
     // if buffer is not empty -> send a char
     uint8_t nextChar = tx_buffer[tx_buffer_idx_out];
     tx_buffer_idx_out = ( (tx_buffer_idx_out+1) % UART_BUFFER_SIZE );
-    UDR = nextChar;
+    UDR0 = nextChar;
   }
 }
 

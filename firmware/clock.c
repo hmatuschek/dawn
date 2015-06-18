@@ -72,9 +72,26 @@ clock_init() {
   eeprom_read_block((Alarm *)clock.alarm, storedAlarm, 7*sizeof(Alarm));
 
   // Configure timer0 to trigger interrupt every 10ms
-  TCCR0 = (1<<CS02)|(1<<CS00);    // Use maximum prescaller: Clk/1024
-  TCNT0  = 0x94;                  // Start counter from 0x94, overflow at 10 mSec
-  TIMSK = (1<<TOIE0);             // Enable Counter Overflow Interrupt
+  TCCR0A =
+      // Normal port operation, OC0A disconnected
+      (0 << COM0A1) | (0 << COM0A0) |
+      // Normal port operation, OC0B disconnected
+      (0 << COM0B1) | (0 << COM0B0) |
+      // No PWM
+      (0 << WGM01) | (0 << WGM00);
+  TCCR0B =
+      // No force output compare A & B
+      (0 << FOC0A) | (0 << FOC0B) |
+      // No PWM
+      (0 << WGM02) |
+      // prescaler 1024
+      (1 << CS02) | (0 << CS01) | (1 << CS00);
+  OCR0A =
+      // Output compare register A  16Mhz/1024/0x9c = 100.16 Hz
+      0x9c;
+  TIMSK0 =
+      // Interrupt on output compare A match
+      (0 << OCIE0B) | (1 << OCIE0A) | (0 << TOIE0);
 }
 
 

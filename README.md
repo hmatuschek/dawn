@@ -156,6 +156,17 @@ the day of the week at which the alarm is enabled.
 
 HOUR and MINUTE are encoded as uint8_t.
 
+### GET_TEMP command (0x07)
+
+Returns the core and ambient temperature in K.
+
+The response has the following format
+
+CORE_TEMP:AMB_TEMP
+
+where both variables are 16bit integer values (MSB first). Some MCUs do not
+provide a core temperature sensor. In this case 0xffff is returned.
+
 
 ## License
 

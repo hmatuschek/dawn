@@ -25,6 +25,7 @@ uint8_t __comm_get(Command *cmd) {
   case SET_TIME:  size = 17; break;
   case GET_ALARM: size = 10; break;
   case SET_ALARM: size = 13; break;
+  case GET_TEMP:  size = 9; break;
   }
   // Wait for the complete packet
   while (size > uart_read_size()) { }
@@ -82,3 +83,8 @@ comm_send_alarm(Alarm *alarm) {
   uart_putc(alarm->minute);
 }
 
+void
+comm_send_temp(uint16_t core, uint16_t ambient) {
+  uart_putc(core>>8);    uart_putc(core&0xff);
+  uart_putc(ambient>>8); uart_putc(ambient&0xff);
+}

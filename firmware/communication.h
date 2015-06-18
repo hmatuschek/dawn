@@ -13,6 +13,7 @@ typedef enum {
   SET_TIME,
   GET_ALARM,
   SET_ALARM,
+  GET_TEMP,
   CMD_MAX,
 } CommandFlag;
 
@@ -54,5 +55,7 @@ void comm_send_value(uint16_t value);
 void comm_send_time(DateTime *datetime);
 // Sends (blocking) the alarm settings (for GET_ALARM)
 void comm_send_alarm(Alarm *alarm);
+// Sends (blocking) the core and ambient temperatures.
+void comm_send_temp(uint16_t core, uint16_t ambient);
 
 #endif // __DAWN_COMMUNICACTION_H__
