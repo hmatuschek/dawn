@@ -24,7 +24,6 @@ typedef enum {
 typedef struct {
   ClockState state;
   uint16_t   value;
-  uint16_t   increment;
   uint16_t   ticks;
   uint16_t   alarmSeconds;
   DateTime   datetime;
@@ -35,7 +34,8 @@ typedef struct {
 volatile static Clock clock;
 
 // Persistent storage of alarm settings
-Alarm storedAlarm[7] EEMEM = { {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0} };
+Alarm storedAlarm[7] EEMEM = {
+  {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0} };
 
 
 // interpolation function for the dawn function table
@@ -55,6 +55,7 @@ clock_init() {
   clock.state = CLOCK_WAIT;
   clock.value = 0;
   clock.ticks = 0;
+  clock.alarmSeconds = 0;
 
   // init keys
   gpio_init();
