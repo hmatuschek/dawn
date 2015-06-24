@@ -1,0 +1,30 @@
+Qty Value           Device             Package         Parts    Description                          
+1   10              R-EU_0204/7        0204/7          R24      RESISTOR
+1   560             R-EU_0207/17       0207/17         R26      RESISTOR, European symbol            
+2   1k              R-EU_0204/2V       0204V           R1, R28  RESISTOR
+1   4.7k            R-EU_0207/10       0207/10         R27      RESISTOR, European symbol            
+4   10k             R-EU_0204/2V       0204V           R13, R29, R12, R11 RESISTOR
+1   1W              R-EU_0411/12       0411/12         R25      RESISTOR
+1   10k             B57164             B57164          R2       SIEMENS NTC                          
+
+2   22pF            C-EU025-025X050    C025-025X050    C7,C6    CAPACITOR
+2   100nF           C-EU025-025X050    C025-025X050    C8, C9   CAPACITOR, European symbol           
+1   100pF           C-EU025-025X050    C025-025X050    C10      CAPACITOR, European symbol           
+1   100uF/35V       CPOL-EUE5-6        E5-6            C1       POLARIZED CAPACITOR
+
+1   100uH           L-EU6000-XXX-RC    6000-XXXX-RC    L1       INDUCTOR, European symbol            
+
+1   32.768kHz       CRYSTALTC26V       TC26V           Q3       CRYSTAL                              
+1   16Mhz           CRYSTALHC18U-V     HC18U-V         Q2       CRYSTAL                              
+
+1   ATMEGA328-20P   ATMEGA328-20P      DIL28-3         IC1      MICROCONTROLLER                      
+1   JY-MCU          JY-MCU             JY-MCU          U$1      BLUETOOTH MODULE                                     
+
+1   SB140           ZENER-DIODEDO35Z10 DO35Z10         D1       Z-Diode                              
+2   BC547B          -NPN-TO92-EBC      TO92-EBC        T3, T4   NPN Transistror                      
+1   BUZ11BV         BUZ11BV            TO220BV         Q4       N-CHANNEL MOS FET                    
+1   DS1307          DS1307             DIL08           IC3      DS1307                               
+
+2   MKDSN1,5/2-5,08 MKDSN1,5/2-5,08    MKDSN1,5/2-5,08 X1, X2   MKDSN 1,5/ 2-5,08 Printklemme        
+1   PF750           PF750              PF752           KK1      HEATSINK                             
+1   SL-340/P        SL-340/P           BEL/P           G1       LI BATTERY Sonnenschein              
