@@ -29,28 +29,33 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
   // Open port
   _port.open(QIODevice::ReadWrite);
   if (! _port.isOpen()) {
-    LogMessage msg(LOG_ERROR); msg << "IO Error: Can not open device " << portname.toStdString();
+    LogMessage msg(LOG_ERROR);
+    msg << "IO Error: Can not open device " << portname.toStdString();
     Logger::get().log(msg);
     return;
   }
 
   if (! _port.setBaudRate(QSerialPort::Baud9600)) {
-    LogMessage msg(LOG_ERROR); msg << "IO: Can not set baudrate.";
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not set baudrate.";
     Logger::get().log(msg);
     return;
   }
   if (! _port.setDataBits(QSerialPort::Data8)) {
-    LogMessage msg(LOG_ERROR); msg << "IO: Can not set data bits.";
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not set data bits.";
     Logger::get().log(msg);
     return;
   }
   if (! _port.setParity(QSerialPort::NoParity)) {
-    LogMessage msg(LOG_ERROR); msg << "IO: Can not set parity.";
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not set parity.";
     Logger::get().log(msg);
     return;
   }
   if (! _port.setStopBits(QSerialPort::OneStop)) {
-    LogMessage msg(LOG_ERROR); msg << "IO: Can not set stop bits.";
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not set stop bits.";
     Logger::get().log(msg);
     return;
   }
@@ -60,11 +65,13 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
   uint8_t rx_buffer[32];
   tx_buffer[0] = GET_VALUE;
   if (! _send(tx_buffer, 1, rx_buffer, 2)) {
-    LogMessage msg(LOG_ERROR); msg << "Can not get current value: Command failed.";
+    LogMessage msg(LOG_ERROR);
+    msg << "Can not get current value: Command failed.";
     Logger::get().log(msg);
     return;
   } else {
-    LogMessage msg(LOG_DEBUG); msg << "Current value " << ((int(rx_buffer[0])<<8) + int(rx_buffer[1]));
+    LogMessage msg(LOG_DEBUG);
+    msg << "Current value " << ((int(rx_buffer[0])<<8) + int(rx_buffer[1]));
     Logger::get().log(msg);
   }
 
@@ -114,7 +121,8 @@ Dawn::setAlarm(size_t idx, const Alarm &alarm) {
   // Try to set alarm on device
   uint8_t tx_buffer[5] = { SET_ALARM, idx, alarm.dowFlags, alarm.time.hour(), alarm.time.minute() };
   if (! _send(tx_buffer, 5)) {
-    LogMessage msg(LOG_WARNING); msg << "Can not set alarm: Command faild.";
+    LogMessage msg(LOG_WARNING);
+    msg << "Can not set alarm: Command faild.";
     Logger::get().log(msg);
     return false;
   }
@@ -127,7 +135,8 @@ Dawn::value() {
   uint8_t tx[1], rx[2];
   tx[0] = GET_VALUE;
   if (! _send(tx, 1, rx, 2)) {
-    LogMessage msg(LOG_WARNING); msg << "Can not get value: Command faild.";
+    LogMessage msg(LOG_WARNING);
+    msg << "Can not get value: Command faild.";
     Logger::get().log(msg);
     return 0;
   }
@@ -181,7 +190,8 @@ bool
 Dawn::getTemp(double &core, double &amb) {
   uint8_t tx[1] = {GET_TEMP}, rx[4];
   if (! _send(tx, 1, rx, 4)) {
-    LogMessage msg(LOG_WARNING); msg << "Can not read temperature: Command failed.";
+    LogMessage msg(LOG_WARNING);
+    msg << "Can not read temperature: Command failed.";
     Logger::get().log(msg);
     return false;
   }
@@ -231,7 +241,7 @@ Dawn::data(const QModelIndex &index, int role) const
       if (0b1111111 == alarm.dowFlags) { repr.clear(); repr << tr("Every day"); }
       if (0b1000001 == alarm.dowFlags) { repr.clear(); repr << tr("Weekend"); }
       if (0b0111110 == alarm.dowFlags) { repr.clear(); repr << tr("Work day"); }
-      if (0 == repr.size()) { repr << tr("never"); }
+      if (0 == repr.size()) { repr << tr("Never"); }
     }
     if (1 == index.column()) {
       return alarm.time.toString();
@@ -258,8 +268,13 @@ Dawn::setData(const QModelIndex &index, const QVariant &value, int role) {
   }
   // Write to device
   bool success = setAlarm(index.row(), alarm);
-  if (success) { emit dataChanged(index, index); }
-  else { std::cerr << "Could not set alarm" << std::endl; }
+  if (success) {
+    emit dataChanged(index, index);
+  } else {
+    LogMessage msg(LOG_WARNING);
+    msg << "Could not set alarm.";
+    Logger::get().log(msg);
+  }
   return success;
 }
 
@@ -280,7 +295,8 @@ Dawn::_write(uint8_t *buffer, size_t len) {
 bool
 Dawn::_read(uint8_t &c) {
   if (! _port.waitForReadyRead(1000)) {
-    LogMessage msg(LOG_WARNING); msg <<"IO Error: Timeout.";
+    LogMessage msg(LOG_WARNING);
+    msg << "read(): Timeout.";
     Logger::get().log(msg);
     return false;
   }
@@ -292,19 +308,18 @@ Dawn::_read(uint8_t *buffer, size_t len) {
   size_t rem = len;
   while (rem) {
     if (! _port.waitForReadyRead(1000) ) {
-      LogMessage msg(LOG_WARNING); msg <<"IO Error: Timeout.";
+      LogMessage msg(LOG_WARNING);
+      msg << "read(): Timeout.";
       Logger::get().log(msg);
       return false;
     }
     int got = _port.read((char *)buffer, rem);
     if (-1 == got) {
-      LogMessage msg(LOG_WARNING); msg <<"IO Error: Can not read from device.";
+      LogMessage msg(LOG_WARNING);
+      msg <<"read(): Can not read from device.";
       Logger::get().log(msg);
       return false;
     }
-    buffer += got; rem -= got;
-    LogMessage msg(LOG_DEBUG); msg <<"IO Error: Received " << got << " bytes.";
-    Logger::get().log(msg);
   }
   return true;
 }
@@ -333,14 +348,15 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
 
   {
     LogMessage msg(LOG_DEBUG);
-    msg << "send (" << cmd_len+8 << ")";
+    msg << "send() (" << cmd_len+8 << "):";
     for (size_t i=0; i<(cmd_len+8); i++) { msg << " " << std::hex << tx_buffer[i]; }
     Logger::get().log(msg);
   }
 
   // Send assembled and signed command
   if (! _write(tx_buffer, cmd_len+8)) {
-    LogMessage msg(LOG_WARNING); msg <<"IO Error: Can not send command.";
+    LogMessage msg(LOG_WARNING);
+    msg << "send(): Can not send command.";
     Logger::get().log(msg);
     return false;
   }
@@ -348,12 +364,14 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   // Read response code
   uint8_t resp_code;
   if (! _read(&resp_code, 1)) {
-    LogMessage msg(LOG_WARNING); msg << "IO Error: Can not read response-code.";
+    LogMessage msg(LOG_WARNING);
+    msg << "send(): Can not read response-code.";
     return false;
   }
-  if (0x00 != resp_code) {
+  // check response code
+  if (resp_code) {
     LogMessage msg(LOG_WARNING);
-    msg << "IO Error: Device returned error code (" << std::hex << resp_code << ")";
+    msg << "send(): Device returned error code (" << std::hex << resp_code << ")";
     Logger::get().log(msg);
     return false;
   }
@@ -361,10 +379,25 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   if (resp_len) {
     if (! _read(resp, resp_len)) {
       LogMessage msg(LOG_WARNING);
-      msg << "IO Error: Can not read response";
+      msg << "send(): Can not read response";
       Logger::get().log(msg);
       return false;
     }
   }
+
+  {
+    LogMessage msg(LOG_DEBUG);
+    msg << "send(): Succcess";
+    if (resp_len) {
+      msg << " (" << resp_len << "): ";
+      for (size_t i=0; i<resp_len; i++) {
+        msg << " " << std::hex << resp[i];
+      }
+    } else {
+      msg << ".";
+    }
+    Logger::get().log(msg);
+  }
+
   return true;
 }
