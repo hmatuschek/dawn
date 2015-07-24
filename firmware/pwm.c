@@ -9,9 +9,8 @@ pwm_init() {
   OCR1A = 0x0000;
   // set none-inverting mode
   TCCR1A |= (1 << COM1A1);
-  // set Fast PWM mode using ICR1 as TOP
+  // set PWM mode using ICR1 as OCR1A
   TCCR1A |= (1 << WGM11) | (1 << WGM10);
-  //TCCR1B |= (1 << WGM12) | (1 << WGM13);
   // START the timer with no prescaler
   TCCR1B |= (1 << CS11);
 }

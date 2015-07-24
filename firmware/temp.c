@@ -22,8 +22,6 @@ temp_get_core() {
   ADCSRA |= (1 << ADSC);
   // Wait for ADC finish
   while (ADCSRA & (1 << ADSC));
-  uint16_t v = ADC;
-
   return ADC;
 }
 

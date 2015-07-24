@@ -21,7 +21,7 @@ MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
 
   QSlider *bright = new QSlider(Qt::Horizontal);
   bright->setMinimum(0);
-  bright->setMaximum(65535);
+  bright->setMaximum(0xffff);
   bright->setValue(_dawn.value());
   toolbar->addWidget(bright);
 

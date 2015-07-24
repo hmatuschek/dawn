@@ -48,7 +48,7 @@ void
 ConfigDialog::onUpdateTime() {
   _dtEdit->setDateTime(_dawn.time());
   double coreTemp, ambTemp;
-  if (_dawn.getTemp(coreTemp, ampTemp)) {
+  if (_dawn.getTemp(coreTemp, ambTemp)) {
     _coreTemp->setText(tr("%0 °C").arg(coreTemp));
     _ambTemp->setText(tr("%0 °C").arg(ambTemp));
   } else {

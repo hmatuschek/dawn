@@ -1,11 +1,12 @@
 #include <QApplication>
-#include "portdialog.hh"
 #include <QSerialPort>
 #include <QMessageBox>
 #include <QDateTime>
 
+#include "portdialog.hh"
 #include "dawn.hh"
 #include "mainwindow.hh"
+#include "logger.hh"
 
 #include <iostream>
 #include <time.h>
@@ -15,6 +16,10 @@
 int main(int argc, char *argv[])
 {
   QApplication app(argc, argv);
+
+  // Register log-handler
+  Logger::get().addHandler(
+        new StreamLogHandler(LOG_DEBUG, std::cerr));
 
   Dawn *dawn = 0;
   QString name, systemLocation;
@@ -29,8 +34,8 @@ int main(int argc, char *argv[])
 
     if (! dawn->isValid()) {
       QMessageBox::critical(
-            0, QObject::tr("Got invalid time from device"),
-            QObject::tr("Got invalid time from device at interface %1 (%2)"
+            0, QObject::tr("Can not access device."),
+            QObject::tr("Can not access device at interface %1 (%2)"
                         ).arg(name).arg(systemLocation));
       delete dawn;
       continue;

@@ -6,6 +6,8 @@ extern "C" {
 #endif
 
 /** CBC-MAC implementation using SipHash 2-4.
+ * @warning Please note that the SipHash 2-4 can not be considered cryptographically secure!
+ *
  * @param hash (64 bit) On entry, it contains the current IV (last hash). On exit it contains the
  *        hash (next IV).
  * @param in Input buffer.

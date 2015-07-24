@@ -1,10 +1,10 @@
 set(dawn_SOURCES main.cc portdialog.cc dawn.cc dayofweekdelegate.cc timedelegate.cc
-    mainwindow.cc configdialog.cc siphash24.c)
+    mainwindow.cc configdialog.cc siphash24.c logger.cc)
 set(dawn_MOC_HEADERS portdialog.hh dawn.hh dayofweekdelegate.hh timedelegate.hh
     mainwindow.hh configdialog.hh)
 qt5_wrap_cpp(dawn_MOC_SOURCES ${dawn_MOC_HEADERS})
 
-set(dawn_HEADERS siphash.h ${dawn_MOC_HEADERS} )
+set(dawn_HEADERS siphash.h logger.hh ${dawn_MOC_HEADERS} )
 
 qt5_add_resources(dawn_RCC_SOURCES ../resources.qrc)
 

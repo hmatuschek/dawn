@@ -1,10 +1,13 @@
 #include "dawn.hh"
+
 #include <QStringList>
 #include <QTextStream>
+
 #include <iostream>
-#include "siphash24.h"
 #include <inttypes.h>
-#include <QDebug>
+
+#include "siphash24.h"
+#include "logger.hh"
 
 typedef enum {
   GET_VALUE    = 0x01,
@@ -26,24 +29,29 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
   // Open port
   _port.open(QIODevice::ReadWrite);
   if (! _port.isOpen()) {
-    qDebug() << "IO Error: Can not open device " << portname;
+    LogMessage msg(LOG_ERROR); msg << "IO Error: Can not open device " << portname.toStdString();
+    Logger::get().log(msg);
     return;
   }
 
   if (! _port.setBaudRate(QSerialPort::Baud9600)) {
-    qDebug() << "IO: Can not set baudrate.";
+    LogMessage msg(LOG_ERROR); msg << "IO: Can not set baudrate.";
+    Logger::get().log(msg);
     return;
   }
   if (! _port.setDataBits(QSerialPort::Data8)) {
-    qDebug() << "IO: Can not set data bits.";
+    LogMessage msg(LOG_ERROR); msg << "IO: Can not set data bits.";
+    Logger::get().log(msg);
     return;
   }
   if (! _port.setParity(QSerialPort::NoParity)) {
-    qDebug() << "IO: Can not set parity.";
+    LogMessage msg(LOG_ERROR); msg << "IO: Can not set parity.";
+    Logger::get().log(msg);
     return;
   }
   if (! _port.setStopBits(QSerialPort::OneStop)) {
-    qDebug() << "IO: Can not set stop bits.";
+    LogMessage msg(LOG_ERROR); msg << "IO: Can not set stop bits.";
+    Logger::get().log(msg);
     return;
   }
 
@@ -52,17 +60,23 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
   uint8_t rx_buffer[32];
   tx_buffer[0] = GET_VALUE;
   if (! _send(tx_buffer, 1, rx_buffer, 2)) {
-    qDebug() << "Can not get current value: Command failed.";
+    LogMessage msg(LOG_ERROR); msg << "Can not get current value: Command failed.";
+    Logger::get().log(msg);
     return;
+  } else {
+    LogMessage msg(LOG_DEBUG); msg << "Current value " << ((int(rx_buffer[0])<<8) + int(rx_buffer[1]));
+    Logger::get().log(msg);
   }
-  qDebug() << "Current value " << ((int(rx_buffer[0])<<8) + int(rx_buffer[1]));
 
   _alarms.resize(7);
   for (size_t i=0; i<7; i++) {
     // Get i-th alarm setting
     tx_buffer[0] = GET_ALARM; tx_buffer[1] = i;
     if (! _send(tx_buffer, 2, rx_buffer, 3)) {
-      qDebug() << "Can not get alarm setting: Command failed.";
+      LogMessage msg(LOG_ERROR);
+      msg << "Can not get alarm setting (idx="
+          << i << "): Command failed.";
+      Logger::get().log(msg);
       return;
     }
     uint8_t dayofweek = (rx_buffer[1] & 0x7f);
@@ -100,7 +114,8 @@ Dawn::setAlarm(size_t idx, const Alarm &alarm) {
   // Try to set alarm on device
   uint8_t tx_buffer[5] = { SET_ALARM, idx, alarm.dowFlags, alarm.time.hour(), alarm.time.minute() };
   if (! _send(tx_buffer, 5)) {
-    qDebug() << "Can not set alarm: Command faild.";
+    LogMessage msg(LOG_WARNING); msg << "Can not set alarm: Command faild.";
+    Logger::get().log(msg);
     return false;
   }
   _alarms[idx] = alarm;
@@ -112,8 +127,9 @@ Dawn::value() {
   uint8_t tx[1], rx[2];
   tx[0] = GET_VALUE;
   if (! _send(tx, 1, rx, 2)) {
-    qDebug() << "Can not get value: Command failed.";
-    return false;
+    LogMessage msg(LOG_WARNING); msg << "Can not get value: Command faild.";
+    Logger::get().log(msg);
+    return 0;
   }
   return (uint16_t(rx[0])<<8) | rx[1];
 }
@@ -122,7 +138,10 @@ bool
 Dawn::setValue(uint16_t value) {
   uint8_t tx[3] = {SET_VALUE, (value>>8), value};
   if (! _send(tx, 3)) {
-    qDebug() << "Can not set value: Command failed.";
+    LogMessage msg(LOG_WARNING);
+    msg << "Can not get value ("
+        << value << "): Command faild.";
+    Logger::get().log(msg);
     return false;
   }
   return true;
@@ -134,7 +153,9 @@ Dawn::time() {
   uint8_t  tx[1] = {GET_TIME}, rx[7];
   // send/receive
   if (! _send(tx, 1, rx, 7)) {
-    qDebug() << "Can not get current time: Command failed.";
+    LogMessage msg(LOG_WARNING);
+    msg << "Can not get current time: Command failed.";
+    Logger::get().log(msg);
     return QDateTime();
   }
   // unpack.
@@ -157,17 +178,17 @@ Dawn::setTime(const QDateTime &time) {
 }
 
 bool
-Dawn::getTemp(double &core, double amb) {
+Dawn::getTemp(double &core, double &amb) {
   uint8_t tx[1] = {GET_TEMP}, rx[4];
   if (! _send(tx, 1, rx, 4)) {
-    qDebug() << "Can not read temperature: Command failed.";
+    LogMessage msg(LOG_WARNING); msg << "Can not read temperature: Command failed.";
+    Logger::get().log(msg);
     return false;
   }
   core = *((uint16_t *)rx);
   core = 25 + ((core*1.1)/1024. - 0.314)*1000;
 
   amb  = *((uint16_t *)(rx+2));
-  core = 25 + ((core*5)/1024. - 2.5)*0;
 
   return true;
 }
@@ -259,7 +280,8 @@ Dawn::_write(uint8_t *buffer, size_t len) {
 bool
 Dawn::_read(uint8_t &c) {
   if (! _port.waitForReadyRead(1000)) {
-    qDebug() << "IO Error: Timeout.";
+    LogMessage msg(LOG_WARNING); msg <<"IO Error: Timeout.";
+    Logger::get().log(msg);
     return false;
   }
   return _port.getChar((char *) &c);
@@ -270,16 +292,19 @@ Dawn::_read(uint8_t *buffer, size_t len) {
   size_t rem = len;
   while (rem) {
     if (! _port.waitForReadyRead(1000) ) {
-      qDebug() << "IO Error: Timeout.";
+      LogMessage msg(LOG_WARNING); msg <<"IO Error: Timeout.";
+      Logger::get().log(msg);
       return false;
     }
     int got = _port.read((char *)buffer, rem);
     if (-1 == got) {
-      qDebug() << "IO Error: Can not read from device.";
+      LogMessage msg(LOG_WARNING); msg <<"IO Error: Can not read from device.";
+      Logger::get().log(msg);
       return false;
     }
     buffer += got; rem -= got;
-    qDebug() << "IO: got " << got << "b.";
+    LogMessage msg(LOG_DEBUG); msg <<"IO Error: Received " << got << " bytes.";
+    Logger::get().log(msg);
   }
   return true;
 }
@@ -305,25 +330,39 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   uint8_t tx_buffer[cmd_len+8];
   memcpy(tx_buffer, cmd, cmd_len);
   _sign(tx_buffer, cmd_len);
+
+  {
+    LogMessage msg(LOG_DEBUG);
+    msg << "send (" << cmd_len+8 << ")";
+    for (size_t i=0; i<(cmd_len+8); i++) { msg << " " << std::hex << tx_buffer[i]; }
+    Logger::get().log(msg);
+  }
+
   // Send assembled and signed command
   if (! _write(tx_buffer, cmd_len+8)) {
-    qDebug() << "IO Error: Can not send command.";
+    LogMessage msg(LOG_WARNING); msg <<"IO Error: Can not send command.";
+    Logger::get().log(msg);
     return false;
   }
+
   // Read response code
   uint8_t resp_code;
   if (! _read(&resp_code, 1)) {
-    qDebug() << "IO Error: Can not read response-code.";
+    LogMessage msg(LOG_WARNING); msg << "IO Error: Can not read response-code.";
     return false;
   }
   if (0x00 != resp_code) {
-    qDebug() << "Device returned error.";
+    LogMessage msg(LOG_WARNING);
+    msg << "IO Error: Device returned error code (" << std::hex << resp_code << ")";
+    Logger::get().log(msg);
     return false;
   }
   // Read response (if any)
   if (resp_len) {
     if (! _read(resp, resp_len)) {
-      qDebug() << "IO Error: Can not read response";
+      LogMessage msg(LOG_WARNING);
+      msg << "IO Error: Can not read response";
+      Logger::get().log(msg);
       return false;
     }
   }

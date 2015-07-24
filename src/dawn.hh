@@ -62,7 +62,7 @@ public:
   bool setTime(const QDateTime &time);
 
   /** Reads the core and device temperature. */
-  bool getTemp(double &core, double amb);
+  bool getTemp(double &core, double &amb);
 
   /* Implementation of QAbstractListModel interface. */
   int rowCount(const QModelIndex &parent) const;
