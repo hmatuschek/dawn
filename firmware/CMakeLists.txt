@@ -1,14 +1,14 @@
 # Specify programmer
 set(AVR_UPLOADTOOL avrdude)
-set(AVR_PROGRAMMER avrispmkII)
-set(AVR_UPLOADTOOL_PORT usb)
+set(AVR_PROGRAMMER stk500v2)
+set(AVR_UPLOADTOOL_PORT /dev/tty.usbmodem411)
 
 # Specify CPU
-set(AVR_MCU atmega328p)
+set(AVR_MCU atmega168)
 
 # Specify fuse magic
 set(AVR_H_FUSE 0xdf)
-set(AVR_L_FUSE 0xc5)
+set(AVR_L_FUSE 0xf7)
 
 # Specify CPU frequency
 set(MCU_SPEED "16000000UL")
@@ -18,22 +18,21 @@ include(generic-gcc-avr)
 
 # Typical options
 add_definitions("-DF_CPU=${MCU_SPEED}")
-add_definitions("-fpack-struct")
+#add_definitions("-fpack-struct")
 add_definitions("-fshort-enums")
 add_definitions("-Wall")
 add_definitions("-Werror")
 add_definitions("-pedantic")
 add_definitions("-pedantic-errors")
-add_definitions("-funsigned-char")
-add_definitions("-funsigned-bitfields")
-add_definitions("-ffunction-sections")
+#add_definitions("-funsigned-char")
+#add_definitions("-funsigned-bitfields")
+#add_definitions("-ffunction-sections")
 add_definitions("-c")
 add_definitions("-std=gnu99")
 add_definitions("-Os")
 
-
 ##########################################################################
-# Source
+# Firmware source
 ##########################################################################
 set(firmware_SOURCES main.c
     siphash24.c pwm.c i2c.c ds1307.c clock.c gpio.c uart.c communication.c temp.c)

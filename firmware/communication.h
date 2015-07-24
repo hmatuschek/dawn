@@ -6,15 +6,15 @@
 
 /** Specifies the possible commands. */
 typedef enum {
-  CMD_MIN = 0x00,
-  GET_VALUE,
-  SET_VALUE,
-  GET_TIME,
-  SET_TIME,
-  GET_ALARM,
-  SET_ALARM,
-  GET_TEMP,
-  CMD_MAX,
+  CMD_MIN   = 0x00,
+  GET_VALUE = 0x01,
+  SET_VALUE = 0x02,
+  GET_TIME  = 0x03,
+  SET_TIME  = 0x04,
+  GET_ALARM = 0x05,
+  SET_ALARM = 0x06,
+  GET_TEMP  = 0x07,
+  CMD_MAX   = 0x08
 } CommandFlag;
 
 
@@ -45,10 +45,12 @@ typedef struct {
 void comm_init();
 
 // Waits for a command to be received
-void comm_wait(Command *cmd);
+uint8_t comm_wait(Command *cmd);
 
 // Sends (blocking) the OK response (for SET_VALUE, SET_TIME, SET_ALARM)
 void comm_send_ok();
+// Sends (blocking) the ERR response
+void comm_send_err();
 // Sends (blocking) the value (for GET_VALUE)
 void comm_send_value(uint16_t value);
 // Sends (blocking) the datetime (for GET_TIME)

@@ -26,7 +26,7 @@ gpio_init() {
   DDRD &= ~((1 << DDB7) | (1 << DDB6) | (1 << DDB5));
   // Enables pull-ups
   PORTB |= (1 << DDB0);
-  PORTD |= (1 << DDB7) | (1 << DDB6) | (1 << DDB5);
+  PORTD |= (1 << DDD7) | (1 << DDD6) | (1 << DDD5);
   // Init keys
   keys[0].last_state = KEY_NONE;  keys[0].tick_count = 0;
   keys[1].last_state = KEY_NONE;  keys[1].tick_count = 0;
@@ -39,9 +39,9 @@ uint8_t
 gpio_pin(uint8_t key) {
   switch (key) {
   case 0: return 0 == (PINB & (1<<DDB0));
-  case 1: return 0 == (PIND & (1<<DDB7));
-  case 2: return 0 == (PIND & (1<<DDB6));
-  case 3: return 0 == (PIND & (1<<DDB5));
+  case 1: return 0 == (PIND & (1<<DDD7));
+  case 2: return 0 == (PIND & (1<<DDD6));
+  case 3: return 0 == (PIND & (1<<DDD5));
   default: break;
   }
   return 0;

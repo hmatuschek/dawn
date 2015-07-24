@@ -1,123 +1,111 @@
+/*************************************************************************
+* Title:    I2C master library using hardware TWI interface
+* Author:   Peter Fleury <pfleury@gmx.ch>  http://jump.to/fleury
+* File:     $Id: twimaster.c,v 1.3 2005/07/02 11:14:21 Peter Exp $
+* Software: AVR-GCC 3.4.3 / avr-libc 1.2.3
+* Target:   any AVR device with hardware TWI 
+* Usage:    API compatible with I2C Software Library i2cmaster.h
+**************************************************************************/
+#include <inttypes.h>
+#include <util/twi.h>
+#include <util/delay.h>
 #include "i2c.h"
-#include <avr/io.h>
-
-#define MAX_TRIES 32
-
-void
-i2c_init() {
-  // Init ATMega168 TWI/I2C Peripheral
-  TWSR = 0x00;   // Select Prescaler of 1
-  // SCL frequency = F_OSC / (16 + 2 * 48 * 1)
-  TWBR = 0x30;   // 48 Decimal
-}
-
-unsigned char
-i2c_transmit(I2CMsgType type) {
-  switch(type) {
-  case I2C_START:    // Send Start Condition
-    TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
-    break;
-  case I2C_DATA:     // Send Data with No-Acknowledge
-    TWCR = (1 << TWINT) | (1 << TWEN);
-    break;
-  case I2C_DATA_ACK: // Send Data with Acknowledge
-    TWCR = (1 << TWEA) | (1 << TWINT) | (1 << TWEN);
-     break;
-  case I2C_STOP:     // Send Stop Condition
-    TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
-    return 0;
-  }
-
-  // Wait for TWINT flag set on Register TWCR
-  while (!(TWCR & (1 << TWINT)));
-
-  // Return TWI Status Register, mask the prescaller bits (TWPS1,TWPS0)
-  return (TWSR & 0xF8);
-}
 
 
-char
-i2c_start(unsigned int dev_id, unsigned int dev_addr, unsigned char rw_type) {
-  unsigned char n = 0;
-  unsigned char twi_status;
-  char r_val = -1;
-
-i2c_retry:
-  if (n++ >= MAX_TRIES) return r_val;
-
-  // Transmit Start Condition
-  twi_status = i2c_transmit(I2C_START);
-
-  // Check the TWI Status
-  if (twi_status == TW_MT_ARB_LOST) goto i2c_retry;
-  if ((twi_status != TW_START) && (twi_status != TW_REP_START)) goto i2c_quit;
-
-  // Send slave address (SLA_W)
-  TWDR = (dev_id & 0xF0) | (dev_addr & 0x07) | rw_type;
-
-  // Transmit I2C Data
-  twi_status=i2c_transmit(I2C_DATA);
-
-  // Check the TWSR status
-  if ((twi_status == TW_MT_SLA_NACK) || (twi_status == TW_MT_ARB_LOST)) goto i2c_retry;
-  if (twi_status != TW_MT_SLA_ACK) goto i2c_quit;
-
-  r_val=0;
-
-i2c_quit:
-  return r_val;
-}
+/* I2C clock in Hz */
+#define SCL_CLOCK  100000UL
 
 
-void
-i2c_stop(void) {
-  // Transmit I2C Data
-  i2c_transmit(I2C_STOP);
-}
+/*************************************************************************
+ Initialization of the I2C bus interface. Need to be called only once
+*************************************************************************/
+void i2c_init(void)
+{
+  /* initialize TWI clock: 100 kHz clock, TWPS = 0 => prescaler = 1 */
+  
+  TWSR = 0;                         /* no prescaler */
+  TWBR = ((F_CPU/SCL_CLOCK)-16UL)/2;  /* must be > 10 for stable operation */
+
+}/* i2c_init */
 
 
-char
-i2c_write(char data) {
-  unsigned char twi_status;
-  char r_val = -1;
+/*************************************************************************	
+  Issues a start condition and sends address and transfer direction.
+  return 0 = device accessible, 1= failed to access device
+*************************************************************************/
+unsigned char i2c_start(unsigned char address)
+{
+	// send START condition
+	TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
+	// wait until transmission completed
+	while(!(TWCR & (1<<TWINT)));
 
-  // Send the Data to I2C Bus
-  TWDR = data;
-
-  // Transmit I2C Data
-  twi_status=i2c_transmit(I2C_DATA);
-
-  // Check the TWSR status
-  if (twi_status != TW_MT_DATA_ACK) goto i2c_quit;
-
-  r_val=0;
-
-i2c_quit:
-  return r_val;
-}
+  // send device address
+	TWDR = address;
+  TWCR = (1<<TWINT) | (1<<TWEN);
+	// wail until transmission completed and ACK/NACK has been received
+	while(!(TWCR & (1<<TWINT)));
+	// check value of TWI Status Register. Mask prescaler bits.
+  return (TW_STATUS==0x18);
+}/* i2c_start */
 
 
-char
-i2c_read(uint8_t *data,char ack_type) {
-  unsigned char twi_status;
-  char r_val = -1;
+/*************************************************************************
+ Terminates the data transfer and releases the I2C bus
+*************************************************************************/
+void i2c_stop(void)
+{
+    /* send stop condition */
+	TWCR = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
+	
+	// wait until stop condition is executed and bus released
+	while(TWCR & (1<<TWSTO));
 
-  if (ack_type) {
-    // Read I2C Data and Send Acknowledge
-    twi_status=i2c_transmit(I2C_DATA_ACK);
+}/* i2c_stop */
 
-    if (twi_status != TW_MR_DATA_ACK) goto i2c_quit;
-  } else {
-    // Read I2C Data and Send No Acknowledge
-    twi_status=i2c_transmit(I2C_DATA);
 
-    if (twi_status != TW_MR_DATA_NACK) goto i2c_quit;
-  }
+/*************************************************************************
+  Send one byte to I2C device
+  
+  Input:    byte to be transfered
+  Return:   0 write successful 
+            1 write failed
+*************************************************************************/
+unsigned char i2c_write( unsigned char data )
+{	
+  // send data to the previously addressed device
+	TWDR = data;
+  TWCR = (1<<TWINT) | (1<<TWEN);
+  // wait until transmission completed
+  while(! (TWCR & (1<<TWINT)));
+  // Wait for ACK by slave
+  //while(TW_STATUS==0x30);
+	// check value of TWI Status Register. Mask prescaler bits
+  return (TW_STATUS==0x28);
+}/* i2c_write */
 
-  // Get the Data
-  *data=TWDR;
-  r_val=0;
 
-i2c_quit:
-  return r_val;
-}
+/*************************************************************************
+ Read one byte from the I2C device, request more data from device 
+ 
+ Return:  byte read from I2C device
+*************************************************************************/
+unsigned char i2c_readAck(void)
+{
+	TWCR = (1<<TWINT) | (1<<TWEN) | (1<<TWEA);
+	while(!(TWCR & (1<<TWINT)));    
+  return TWDR;
+}/* i2c_readAck */
+
+
+/*************************************************************************
+ Read one byte from the I2C device, read is followed by a stop condition 
+ 
+ Return:  byte read from I2C device
+*************************************************************************/
+unsigned char i2c_readNak(void)
+{
+	TWCR = (1<<TWINT) | (1<<TWEN);
+  while (!(TWCR & (1<<TWINT)));
+  return TWDR;
+}/* i2c_readNak */

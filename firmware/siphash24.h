@@ -11,8 +11,7 @@ extern "C" {
  * @param in Input buffer.
  * @param inlen Input buffer length.
  * @param key (128 bit) Shared secret.*/
-void siphash24_cbc_mac(
-    unsigned char *hash, const unsigned char *in, unsigned long long inlen, const unsigned char *key);
+void siphash24_cbc_mac(uint8_t *hash, const uint8_t *in, uint8_t inlen, const uint8_t *key);
 
 #ifdef __cplusplus
 }

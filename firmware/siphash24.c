@@ -51,7 +51,7 @@ typedef uint8_t u8;
 
 /* SipHash-2-4 */
 void
-siphash24_hash(unsigned char *hash, const unsigned char *block, const unsigned char *k)
+siphash24_hash(uint8_t *hash, const uint8_t *block, const uint8_t *k)
 {
   /* "somepseudorandomlygeneratedbytes" */
   u64 v0 = 0x736f6d6570736575ULL;
@@ -83,12 +83,10 @@ siphash24_hash(unsigned char *hash, const unsigned char *block, const unsigned c
 
 /** Computes the CBC-MAC from the @c inlen bytes stored in @c in using the @c key and the
  * current @c hash value as the IV. The @c hash gets updated constantly. */
-void siphash24_cbc_mac(unsigned char *hash,
-                       const unsigned char *in, unsigned long long inlen,
-                       const unsigned char *key)
+void siphash24_cbc_mac(uint8_t *hash, const uint8_t *in, uint8_t inlen, const uint8_t *key)
 {
   // Process first 64-bit blocks
-  unsigned long long rem = inlen;
+  uint8_t rem = inlen;
   while (rem >= 8) {
     siphash24_hash(hash, in, key);
     rem -= 8; in += 8;

@@ -6,6 +6,7 @@
 #include <QSlider>
 #include <QSpinBox>
 #include <QTimer>
+#include <QLabel>
 
 #include "dawn.hh"
 
@@ -25,6 +26,8 @@ protected slots:
 protected:
   Dawn &_dawn;
   QDateTimeEdit *_dtEdit;
+  QLabel *_coreTemp;
+  QLabel *_ambTemp;
   QTimer _timer;
 };
 

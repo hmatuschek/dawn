@@ -4,6 +4,7 @@
 #include <iostream>
 #include "siphash24.h"
 #include <inttypes.h>
+#include <QDebug>
 
 typedef enum {
   GET_VALUE    = 0x01,
@@ -12,6 +13,7 @@ typedef enum {
   SET_TIME     = 0x04,
   GET_ALARM    = 0x05,
   SET_ALARM    = 0x06,
+  GET_TEMP     = 0x07
 } Commands;
 
 
@@ -22,21 +24,47 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
   memcpy(_secret, secret, 16);
 
   // Open port
-  _port.setBaudRate(9600);
   _port.open(QIODevice::ReadWrite);
-  if (! _port.isOpen()) { return; }
+  if (! _port.isOpen()) {
+    qDebug() << "IO Error: Can not open device " << portname;
+    return;
+  }
+
+  if (! _port.setBaudRate(QSerialPort::Baud9600)) {
+    qDebug() << "IO: Can not set baudrate.";
+    return;
+  }
+  if (! _port.setDataBits(QSerialPort::Data8)) {
+    qDebug() << "IO: Can not set data bits.";
+    return;
+  }
+  if (! _port.setParity(QSerialPort::NoParity)) {
+    qDebug() << "IO: Can not set parity.";
+    return;
+  }
+  if (! _port.setStopBits(QSerialPort::OneStop)) {
+    qDebug() << "IO: Can not set stop bits.";
+    return;
+  }
 
   // First, get current value
   uint8_t tx_buffer[32];
   uint8_t rx_buffer[32];
   tx_buffer[0] = GET_VALUE;
-  if (! _send(tx_buffer, 1, rx_buffer, 1)) { return; }
+  if (! _send(tx_buffer, 1, rx_buffer, 2)) {
+    qDebug() << "Can not get current value: Command failed.";
+    return;
+  }
+  qDebug() << "Current value " << ((int(rx_buffer[0])<<8) + int(rx_buffer[1]));
 
   _alarms.resize(7);
   for (size_t i=0; i<7; i++) {
     // Get i-th alarm setting
     tx_buffer[0] = GET_ALARM; tx_buffer[1] = i;
-    if (! _send(tx_buffer, 2, rx_buffer, 3)) { return; }
+    if (! _send(tx_buffer, 2, rx_buffer, 3)) {
+      qDebug() << "Can not get alarm setting: Command failed.";
+      return;
+    }
     uint8_t dayofweek = (rx_buffer[1] & 0x7f);
     uint8_t hour      = rx_buffer[2];
     uint8_t minute    = rx_buffer[3];
@@ -70,13 +98,11 @@ Dawn::alarm(size_t idx) const {
 bool
 Dawn::setAlarm(size_t idx, const Alarm &alarm) {
   // Try to set alarm on device
-  uint8_t tx_buffer[5], rx_buffer[1];
-  tx_buffer[0] = SET_ALARM;
-  tx_buffer[1] = idx;
-  tx_buffer[2] = alarm.dowFlags;
-  tx_buffer[3] = alarm.time.hour();
-  tx_buffer[4] = alarm.time.minute();
-  if (! _send(tx_buffer, 5, rx_buffer, 1)) { return false; }
+  uint8_t tx_buffer[5] = { SET_ALARM, idx, alarm.dowFlags, alarm.time.hour(), alarm.time.minute() };
+  if (! _send(tx_buffer, 5)) {
+    qDebug() << "Can not set alarm: Command faild.";
+    return false;
+  }
   _alarms[idx] = alarm;
   return true;
 }
@@ -85,32 +111,35 @@ uint16_t
 Dawn::value() {
   uint8_t tx[1], rx[2];
   tx[0] = GET_VALUE;
-  if (! _send(tx, 1, rx, 2)) { return false; }
+  if (! _send(tx, 1, rx, 2)) {
+    qDebug() << "Can not get value: Command failed.";
+    return false;
+  }
   return (uint16_t(rx[0])<<8) | rx[1];
 }
 
 bool
 Dawn::setValue(uint16_t value) {
-  uint8_t tx[3], rx[1];
-  tx[0] = SET_VALUE; tx[1] = (value>>8); tx[2] = (value & 0xff);
-  return _send(tx, 3, rx, 1);
+  uint8_t tx[3] = {SET_VALUE, (value>>8), value};
+  if (! _send(tx, 3)) {
+    qDebug() << "Can not set value: Command failed.";
+    return false;
+  }
+  return true;
 }
 
 QDateTime
 Dawn::time() {
   // Allocat buffers
-  uint8_t  tx[1], rx[8];
-  // Deref response fields
-  uint16_t *year=(uint16_t *)rx;
-  uint8_t  *month=rx+2, *day=rx+3,
-      *hour=rx+5, *minute=rx+6, *second=rx+7;
-  // assemble request
-  tx[0] = GET_TIME;
+  uint8_t  tx[1] = {GET_TIME}, rx[7];
   // send/receive
-  if (! _send(tx, 1, rx, 8)) { return QDateTime(); }
+  if (! _send(tx, 1, rx, 7)) {
+    qDebug() << "Can not get current time: Command failed.";
+    return QDateTime();
+  }
   // unpack.
-  return QDateTime(QDate( *year, *month, *day),
-      QTime(*hour, *minute, *second));
+  return QDateTime(QDate( 2000 + rx[0], rx[1], rx[2]),
+      QTime(rx[4], rx[5], rx[6]));
 }
 
 bool
@@ -120,18 +149,28 @@ Dawn::setTime() {
 
 bool
 Dawn::setTime(const QDateTime &time) {
-  uint8_t tx[9], rx[1];
-  tx[0] = SET_TIME;
-  *((uint16_t *)(tx+1)) = time.date().year();
-  tx[3] = time.date().month();
-  tx[4] = time.date().day();
-  tx[5] = time.date().dayOfWeek();
-  tx[6] = time.time().hour();
-  tx[7] = time.time().minute();
-  tx[8] = time.time().second();
-  return _send(tx, 9, rx, 1);
+  uint8_t tx[9] = {
+    SET_TIME, std::max(0, time.date().year()-2000), time.date().month(), time.date().day(),
+    time.date().dayOfWeek(), time.time().hour(), time.time().minute(), time.time().second()
+  };
+  return _send(tx, 8);
 }
 
+bool
+Dawn::getTemp(double &core, double amb) {
+  uint8_t tx[1] = {GET_TEMP}, rx[4];
+  if (! _send(tx, 1, rx, 4)) {
+    qDebug() << "Can not read temperature: Command failed.";
+    return false;
+  }
+  core = *((uint16_t *)rx);
+  core = 25 + ((core*1.1)/1024. - 0.314)*1000;
+
+  amb  = *((uint16_t *)(rx+2));
+  core = 25 + ((core*5)/1024. - 2.5)*0;
+
+  return true;
+}
 
 int
 Dawn::rowCount(const QModelIndex &parent) const {
@@ -171,6 +210,7 @@ Dawn::data(const QModelIndex &index, int role) const
       if (0b1111111 == alarm.dowFlags) { repr.clear(); repr << tr("Every day"); }
       if (0b1000001 == alarm.dowFlags) { repr.clear(); repr << tr("Weekend"); }
       if (0b0111110 == alarm.dowFlags) { repr.clear(); repr << tr("Work day"); }
+      if (0 == repr.size()) { repr << tr("never"); }
     }
     if (1 == index.column()) {
       return alarm.time.toString();
@@ -218,7 +258,10 @@ Dawn::_write(uint8_t *buffer, size_t len) {
 
 bool
 Dawn::_read(uint8_t &c) {
-  if (! _port.bytesAvailable() && (! _port.waitForReadyRead(1000))) { return false; }
+  if (! _port.waitForReadyRead(1000)) {
+    qDebug() << "IO Error: Timeout.";
+    return false;
+  }
   return _port.getChar((char *) &c);
 }
 
@@ -226,10 +269,17 @@ bool
 Dawn::_read(uint8_t *buffer, size_t len) {
   size_t rem = len;
   while (rem) {
-    if (! _port.bytesAvailable() && (! _port.waitForReadyRead(1000))) { return false; }
+    if (! _port.waitForReadyRead(1000) ) {
+      qDebug() << "IO Error: Timeout.";
+      return false;
+    }
     int got = _port.read((char *)buffer, rem);
-    if (-1 == got) { return false; }
+    if (-1 == got) {
+      qDebug() << "IO Error: Can not read from device.";
+      return false;
+    }
     buffer += got; rem -= got;
+    qDebug() << "IO: got " << got << "b.";
   }
   return true;
 }
@@ -246,11 +296,36 @@ Dawn::_sign(uint8_t *buffer, size_t len, uint8_t *sig) {
 }
 
 bool
+Dawn::_send(uint8_t *cmd, size_t cmd_len) {
+  return _send(cmd, cmd_len, 0, 0);
+}
+
+bool
 Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   uint8_t tx_buffer[cmd_len+8];
   memcpy(tx_buffer, cmd, cmd_len);
   _sign(tx_buffer, cmd_len);
-  if (! _write(tx_buffer, cmd_len+8)) { return false; }
-  if (! _read(resp, resp_len)) { return false; }
+  // Send assembled and signed command
+  if (! _write(tx_buffer, cmd_len+8)) {
+    qDebug() << "IO Error: Can not send command.";
+    return false;
+  }
+  // Read response code
+  uint8_t resp_code;
+  if (! _read(&resp_code, 1)) {
+    qDebug() << "IO Error: Can not read response-code.";
+    return false;
+  }
+  if (0x00 != resp_code) {
+    qDebug() << "Device returned error.";
+    return false;
+  }
+  // Read response (if any)
+  if (resp_len) {
+    if (! _read(resp, resp_len)) {
+      qDebug() << "IO Error: Can not read response";
+      return false;
+    }
+  }
   return true;
 }

@@ -15,18 +15,22 @@ ConfigDialog::ConfigDialog(Dawn &dawn, QWidget *parent) :
   dtLayout->addWidget(_dtEdit);
   dtLayout->addWidget(now);
 
-  _timer.setInterval(1000);
-  _timer.setSingleShot(false);
-  _timer.start();
+  _coreTemp = new QLabel(tr("--- °C"));
+  _ambTemp  = new QLabel(tr("--- °C"));
 
   QFormLayout *flayout = new QFormLayout();
   flayout->addRow(tr("Date and Time"), dtLayout);
-
+  flayout->addRow(tr("CPU temperature"), _coreTemp);
+  flayout->addRow(tr("Device temperature"), _ambTemp);
   this->setLayout(flayout);
 
   QObject::connect(now, SIGNAL(clicked()), this, SLOT(onSetTimeToNow()));
   QObject::connect(_dtEdit, SIGNAL(editingFinished()), this, SLOT(onSetTime()));
   QObject::connect(&_timer, SIGNAL(timeout()), this, SLOT(onUpdateTime()));
+
+  _timer.setInterval(1000);
+  _timer.setSingleShot(false);
+  _timer.start();
 }
 
 void
@@ -43,4 +47,12 @@ ConfigDialog::onSetTime() {
 void
 ConfigDialog::onUpdateTime() {
   _dtEdit->setDateTime(_dawn.time());
+  double coreTemp, ambTemp;
+  if (_dawn.getTemp(coreTemp, ampTemp)) {
+    _coreTemp->setText(tr("%0 °C").arg(coreTemp));
+    _ambTemp->setText(tr("%0 °C").arg(ambTemp));
+  } else {
+    _coreTemp = new QLabel(tr("--- °C"));
+    _ambTemp  = new QLabel(tr("--- °C"));
+  }
 }

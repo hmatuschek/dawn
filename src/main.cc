@@ -27,14 +27,14 @@ int main(int argc, char *argv[])
     systemLocation = dialog.systemLocation();
     dawn = new Dawn(systemLocation, secret);
 
-    /*if (! dawn->isValid()) {
+    if (! dawn->isValid()) {
       QMessageBox::critical(
             0, QObject::tr("Got invalid time from device"),
             QObject::tr("Got invalid time from device at interface %1 (%2)"
                         ).arg(name).arg(systemLocation));
       delete dawn;
       continue;
-    }*/
+    }
     break;
   }
 

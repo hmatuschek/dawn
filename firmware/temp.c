@@ -3,17 +3,8 @@
 #include <avr/io.h>
 
 void temp_init() {
-  ADCSRA =
-      // Enable the ADC
-      (1 << ADEN) |
-      // Do not start conversion yet
-      (0 << ADSC) |
-      // No conversion trigger
-      (0 << ADATE) |
-      // No ADC interrupt
-      (0 << ADIF) | (0 << ADIE) |
-      // ADC Prescaler - 16 (16MHz -> 1MHz)
-      (1 << ADPS2) | (0 << ADPS1) | (0 << ADPS0);
+  ADCSRA = (1<<ADEN) | (0 << ADSC) | (0 << ADATE) | (0 << ADIF) | (0 << ADIE) |
+      (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);
 }
 
 
@@ -21,8 +12,8 @@ uint16_t
 temp_get_core() {
   // Select ADC source
   ADMUX =
-      // external reference (AREF=5V)
-      (0 << REFS1) | (0 << REFS0) |
+      // external reference (AREF=1.1V internal)
+      (1 << REFS1) | (1 << REFS0) |
       // right adujst ADC result (LSB = bit0)
       (0 << ADLAR) |
       // Select temperature sensor
@@ -30,8 +21,10 @@ temp_get_core() {
   // Start temperature conversion
   ADCSRA |= (1 << ADSC);
   // Wait for ADC finish
-  while (ADCSRA && (1 << ADSC)) {}
-  return ((uint16_t) ADCH)<<8 | ADCL;
+  while (ADCSRA & (1 << ADSC));
+  uint16_t v = ADC;
+
+  return ADC;
 }
 
 uint16_t
@@ -47,7 +40,7 @@ temp_get_external() {
   // Start temperature conversion
   ADCSRA |= (1 << ADSC);
   // Wait for ADC finish
-  while (ADCSRA && (1 << ADSC)) {}
-  return ((uint16_t) ADCH)<<8 | ADCL;
+  while (ADCSRA & (1 << ADSC)) {}
+  return ADC;
 }
 

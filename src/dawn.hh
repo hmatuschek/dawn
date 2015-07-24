@@ -61,6 +61,8 @@ public:
   /** Sets the time & date of the device to the given date/time. */
   bool setTime(const QDateTime &time);
 
+  /** Reads the core and device temperature. */
+  bool getTemp(double &core, double amb);
 
   /* Implementation of QAbstractListModel interface. */
   int rowCount(const QModelIndex &parent) const;
@@ -79,6 +81,7 @@ protected:
   void _sign(uint8_t *buffer, size_t len);
   void _sign(uint8_t *buffer, size_t len, uint8_t *hash);
 
+  bool _send(uint8_t *cmd, size_t cmd_len);
   bool _send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len);
 
 protected:

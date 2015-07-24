@@ -65,33 +65,29 @@ clock_init() {
 
   // init RTC
   ds1307_init();
+
   // get current time
-  ds1307_read((DateTime *) &clock.datetime);
+  ds1307_getdate((uint8_t *) &clock.datetime.year, (uint8_t *) &clock.datetime.month, (uint8_t *) &clock.datetime.day,
+                 (uint8_t *) &clock.datetime.hour, (uint8_t *) &clock.datetime.minute, (uint8_t *) &clock.datetime.second);
+  clock.datetime.dayOfWeek =
+      ds1307_getdayofweek(clock.datetime.year, clock.datetime.month, clock.datetime.day);
 
   // Read alarm settings from EEPROM
   eeprom_read_block((Alarm *)clock.alarm, storedAlarm, 7*sizeof(Alarm));
 
-  // Configure timer0 to trigger interrupt every 10ms
+  // Configure timer0 to trigger interrupt about every 10ms
   TCCR0A =
-      // Normal port operation, OC0A disconnected
-      (0 << COM0A1) | (0 << COM0A0) |
-      // Normal port operation, OC0B disconnected
-      (0 << COM0B1) | (0 << COM0B0) |
-      // No PWM
-      (0 << WGM01) | (0 << WGM00);
+      // No PWM -> CTC (reset on compare match), OC0B disconnected
+      (1 << WGM01);
   TCCR0B =
-      // No force output compare A & B
-      (0 << FOC0A) | (0 << FOC0B) |
-      // No PWM
-      (0 << WGM02) |
       // prescaler 1024
-      (1 << CS02) | (0 << CS01) | (1 << CS00);
+      (1 << CS02) | (1 << CS00);
   OCR0A =
       // Output compare register A  16Mhz/1024/0x9c = 100.16 Hz
       0x9c;
   TIMSK0 =
       // Interrupt on output compare A match
-      (0 << OCIE0B) | (1 << OCIE0A) | (0 << TOIE0);
+      (1 << OCIE0A);
 }
 
 
@@ -101,7 +97,7 @@ uint8_t alarm_match() {
     // check if day of week matches
     if (0 == (clock.alarm[i].select>>clock.datetime.dayOfWeek)) { continue; }
     if (clock.alarm[i].hour != clock.datetime.hour) { continue; }
-    if (clock.alarm[i].minute != clock.datetime.mintue) { continue; }
+    if (clock.alarm[i].minute != clock.datetime.minute) { continue; }
     if (1 < clock.datetime.second) { continue; }
     return 1;
   }
@@ -122,16 +118,21 @@ void clock_get_datetime(DateTime *datetime) {
   memcpy(datetime, (DateTime *) &clock.datetime, sizeof(DateTime));
 }
 
-void clock_set_datetime(DateTime *datetime) {
+uint8_t clock_set_datetime(DateTime *datetime) {
+  // Try to set DS1307 RTC
+  if(! ds1307_setdate(datetime->year, datetime->month, datetime->day,
+                      datetime->hour, datetime->minute, datetime->second)) { return 0; }
+  // On success update local date-time struct
   memcpy((DateTime *) &clock.datetime, datetime, sizeof(clock.datetime));
-  ds1307_write((DateTime *) &clock.datetime);
+  return 1;
 }
 
-void clock_set_alarm(uint8_t idx, Alarm *alarm) {
-  if (idx >= CLOCK_N_ALARM) { return; }
+uint8_t clock_set_alarm(uint8_t idx, Alarm *alarm) {
+  if (idx >= CLOCK_N_ALARM) { return 0; }
   memcpy((Alarm *) &clock.alarm[idx], alarm, sizeof(clock.alarm));
   // store alarm config into EEPROM
   eeprom_write_block((Alarm *)clock.alarm, storedAlarm, 7*sizeof(Alarm));
+  return 1;
 }
 
 void clock_get_alarm(uint8_t idx, Alarm *alarm) {
@@ -153,7 +154,10 @@ ISR(TIMER0_OVF_vect) {
   if (clock.ticks == 100) {
     clock.ticks = 0;
     // Update date and time
-    ds1307_read((DateTime *) &clock.datetime);
+    ds1307_getdate((uint8_t *) &(clock.datetime.year), (uint8_t *) &(clock.datetime.month), (uint8_t *) &(clock.datetime.day),
+                   (uint8_t *) &(clock.datetime.hour), (uint8_t *) &(clock.datetime.minute), (uint8_t *) &(clock.datetime.second));
+    clock.datetime.dayOfWeek =
+        ds1307_getdayofweek(clock.datetime.year, clock.datetime.month, clock.datetime.day);
     // If alarm -> update alarm seconds counter
     if (CLOCK_ALARM == clock.state) {
       clock.alarmSeconds++;
@@ -164,10 +168,9 @@ ISR(TIMER0_OVF_vect) {
       }
     }
     // Check for alarm if enabled (pin0 -> high)
-    if ( gpio_pin(0) && (0x00ff > clock.value) && alarm_match() ) {
+    if ( (CLOCK_WAIT == clock.state) && (0x00ff > clock.value) && alarm_match() ) {
       // Start alarm
       clock.state = CLOCK_ALARM;
-      // Start
       clock.alarmSeconds = 0;
     }
   }
@@ -179,18 +182,24 @@ ISR(TIMER0_OVF_vect) {
   }
 
   // Check down key:
-  switch (gpio_update_key(1)) {
+  switch (gpio_update_key(0)) {
   case KEY_KLICK:
-    // Interrupt alarm
-    if (CLOCK_ALARM == clock.state) { clock.state = CLOCK_WAIT; }
+    if (CLOCK_ALARM == clock.state) {
+      // Interrupt alarm
+      clock.state = CLOCK_WAIT;
+    }
     // Switch off
     clock.value = 0; pwm_set(clock.value);
     break;
   case KEY_HOLD:
-    // Interrupt alarm
-    if (CLOCK_ALARM == clock.state) { clock.state = CLOCK_WAIT; }
+    if (CLOCK_ALARM == clock.state) {
+      // Interrupt alarm
+      clock.state = CLOCK_WAIT;
+    }
     // Decrease current value
-    if (clock.value) { clock.value--; }
+    if (clock.value) {
+      clock.value--;
+    }
     pwm_set(clock.value);
     break;
   case KEY_NONE:
@@ -198,7 +207,7 @@ ISR(TIMER0_OVF_vect) {
   }
 
   // Check up key
-  switch (gpio_update_key(2)) {
+  switch (gpio_update_key(1)) {
   case KEY_KLICK:
     // Interrupt alarm
     if (CLOCK_ALARM == clock.state) { clock.state = CLOCK_WAIT; }
@@ -217,6 +226,6 @@ ISR(TIMER0_OVF_vect) {
   }
 
   sei();
-  TCNT0 = 0x94; // enable timer0 interrupt
+  // TCNT0 = 0x94; // enable timer0 interrupt
 }
 
