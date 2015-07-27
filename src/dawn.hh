@@ -44,18 +44,20 @@ public:
 
   /** Returns the number of possible alarm configurations. */
   size_t numAlarms() const;
+  /** Loads and returns the specified alarm. */
+  const Alarm &loadAlarm(size_t idx, bool *ok=0);
   /** Retunrs a particular alarm config. */
   const Alarm &alarm(size_t idx) const;
   /** (Re-) Sets the specified alarm. */
   bool setAlarm(size_t idx, const Alarm &alarm);
 
   /** Returns the current value (brightness) of the lamp. */
-  uint16_t value();
+  uint16_t value(bool *ok=0);
   /** Resets the current value (brightness) of the lamp. */
   bool setValue(uint16_t value);
 
   /** Retunrs the time and date of the device. */
-  QDateTime time();
+  QDateTime time(bool *ok=0);
   /** Sets the time & date of the device to the host date/time. */
   bool setTime();
   /** Sets the time & date of the device to the given date/time. */
@@ -72,17 +74,27 @@ public:
   bool setData(const QModelIndex &index, const QVariant &value, int role);
 
 protected:
+  /** Sends a char to the device. */
   bool _write(uint8_t c);
+  /** Sends some data to the device. */
   bool _write(uint8_t *buffer, size_t len);
 
+  /** Receives a char from the device. */
   bool _read(uint8_t &c);
+  /** Receives some data from the device. */
   bool _read(uint8_t *buffer, size_t len);
-
+  /** Signs the first @c len bytes of the buffer.
+   * The signature is appended to the buffer, hence it must be of at least size len+8. */
   void _sign(uint8_t *buffer, size_t len);
+  /** Signs the first @c len bytes of the buffer and stores the signature into
+   * hash. */
   void _sign(uint8_t *buffer, size_t len, uint8_t *hash);
-
+  /** Sends the given command to the device. Expects no response. */
   bool _send(uint8_t *cmd, size_t cmd_len);
+  /** Sends the given command to the device. The response is stored into @c resp. */
   bool _send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len);
+  /** Recovers from an io-error condition. */
+  bool _recover();
 
 protected:
   /** The port interfacing the lamp. */

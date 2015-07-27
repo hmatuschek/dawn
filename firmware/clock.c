@@ -34,7 +34,7 @@ typedef struct {
 volatile static Clock clock;
 
 // Persistent storage of alarm settings
-Alarm storedAlarm[7] EEMEM = {
+Alarm storedAlarm[CLOCK_N_ALARM] EEMEM = {
   {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0} };
 
 
@@ -58,7 +58,7 @@ clock_init() {
   clock.alarmSeconds = 0;
 
   // init keys
-  gpio_init();
+  touch_init();
 
   // init pwm
   pwm_init();
@@ -138,15 +138,16 @@ uint8_t clock_set_alarm(uint8_t idx, Alarm *alarm) {
 void clock_get_alarm(uint8_t idx, Alarm *alarm) {
   if (idx >= CLOCK_N_ALARM) {
     alarm->select = alarm->hour = alarm->minute = 0;
+    return;
+  } else {
+    memcpy(alarm, (Alarm *) &clock.alarm[idx], sizeof(Alarm));
   }
-  memcpy(alarm, (Alarm *) &clock.alarm[idx], sizeof(Alarm));
 }
 
 
 // Interrupt service routine for TIMER0
-ISR(TIMER0_OVF_vect) {
-  cli(); // Disable Interupt
-
+ISR(TIMER0_COMPA_vect) {
+  cli();
   // increment tick counter
   clock.ticks++;
 
@@ -182,7 +183,9 @@ ISR(TIMER0_OVF_vect) {
   }
 
   // Check down key:
-  switch (gpio_update_key(0)) {
+  touch_update_keys();
+
+  /*switch (gpio_update_key(0)) {
   case KEY_KLICK:
     if (CLOCK_ALARM == clock.state) {
       // Interrupt alarm
@@ -223,9 +226,9 @@ ISR(TIMER0_OVF_vect) {
     break;
   case KEY_NONE:
     break;
-  }
+  } */
 
   sei();
-  // TCNT0 = 0x94; // enable timer0 interrupt
+  return;
 }
 

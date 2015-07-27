@@ -1,104 +1,255 @@
 /*
-   SipHash reference C implementation
+ SipHash_2_4.cpp
+ SipHash for 8bit Atmel processors
+ 
+ Note: one instance sipHash is already constructed in .cpp file
 
-   Written in 2012 by 
-   Jean-Philippe Aumasson <jeanphilippe.aumasson@gmail.com>
-   Daniel J. Bernstein <djb@cr.yp.to>
+Usage: 
+     uint8_t key[] PROGMEM = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                               0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+     sipHash.initFromPROGMEM(key); // initialize with key NOTE: key is stored in flash (PROGMEM)
+     // use sipHash.initFromRAM(key); if key in RAM 
+     for (int i=0; i<msgLen;i++) {
+      sipHash.updateHash((byte)c); // update hash with each byte of msg
+    }
+    sipHash.finish(); // finish
+    // SipHash.result then contains the 8bytes of the hash in BigEndian format
 
-   To the extent possible under law, the author(s) have dedicated all copyright
-   and related and neighboring rights to this software to the public domain
-   worldwide. This software is distributed without any warranty.
-
-   You should have received a copy of the CC0 Public Domain Dedication along with
-   this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
-*/
-#include <stdint.h>
+ 
+ see https://131002.net/siphash/ for details of algorithm
+ 
+ (c)2013 Forward Computing and Control Pty. Ltd. 
+ www.forward.com.au
+ This code may be freely used for both private and commercial use.
+ Provide this copyright is maintained.
+ */
+ 
 #include <string.h>
 #include "siphash24.h"
 
-typedef uint64_t u64;
-typedef uint32_t u32;
-typedef uint8_t u8;
-
-#define ROTL(x,b) (u64)( ((x) << (b)) | ( (x) >> (64 - (b))) )
-
-#define U32TO8_LE(p, v)         \
-    (p)[0] = (u8)((v)      ); (p)[1] = (u8)((v) >>  8); \
-    (p)[2] = (u8)((v) >> 16); (p)[3] = (u8)((v) >> 24);
-
-#define U64TO8_LE(p, v)         \
-  U32TO8_LE((p),     (u32)((v)      ));   \
-  U32TO8_LE((p) + 4, (u32)((v) >> 32));
-
-#define U8TO64_LE(p) \
-  (((u64)((p)[0])      ) | \
-   ((u64)((p)[1]) <<  8) | \
-   ((u64)((p)[2]) << 16) | \
-   ((u64)((p)[3]) << 24) | \
-   ((u64)((p)[4]) << 32) | \
-   ((u64)((p)[5]) << 40) | \
-   ((u64)((p)[6]) << 48) | \
-   ((u64)((p)[7]) << 56))
-
-#define SIPROUND            \
-  do {              \
-    v0 += v1; v1=ROTL(v1,13); v1 ^= v0; v0=ROTL(v0,32); \
-    v2 += v3; v3=ROTL(v3,16); v3 ^= v2;     \
-    v0 += v3; v3=ROTL(v3,21); v3 ^= v0;     \
-    v2 += v1; v1=ROTL(v1,17); v1 ^= v2; v2=ROTL(v2,32); \
-  } while(0)
-
-
-/* SipHash-2-4 */
-void
-siphash24_hash(uint8_t *hash, const uint8_t *block, const uint8_t *k)
-{
-  /* "somepseudorandomlygeneratedbytes" */
-  u64 v0 = 0x736f6d6570736575ULL;
-  u64 v1 = 0x646f72616e646f6dULL;
-  u64 v2 = 0x6c7967656e657261ULL;
-  u64 v3 = 0x7465646279746573ULL;
-  u64 k0 = U8TO64_LE( k );
-  u64 k1 = U8TO64_LE( k + 8 );
-  u64 m;
-  v3 ^= k1;
-  v2 ^= k0;
-  v1 ^= k1;
-  v0 ^= k0;
-
-  m = U8TO64_LE( block ) ^ U8TO64_LE(hash);
-  v3 ^= m;
-  SIPROUND;
-  SIPROUND;
-  v0 ^= m;
-
-  v2 ^= 0xff;
-  SIPROUND;
-  SIPROUND;
-  SIPROUND;
-  SIPROUND;
-  U64TO8_LE( hash, v0 ^ v1 ^ v2 ^ v3 );
+#define XOR64(v,v1) \
+{\
+	for (int i=0; i<8; i++) {\
+		v[i] ^= v1[i];\
+	}\
+}	
+	
+void rotl64_16(uint8_t *v) {
+	uint8_t v0 = v[0];
+	uint8_t v1 = v[1];
+	for (int i=0; i<6; i++) {
+		v[i] = v[i+2];
+	}
+	v[6] = v0;
+	v[7] = v1;
 }
 
+#define ROTL64_16(v) \
+{\
+	uint8_t v0 = v[0];\
+	uint8_t v1 = v[1];\
+	for (int i=0; i<6; i++) {\
+		v[i] = v[i+2];\
+	}\
+	v[6] = v0;\
+	v[7] = v1;\
+}
 
-/** Computes the CBC-MAC from the @c inlen bytes stored in @c in using the @c key and the
- * current @c hash value as the IV. The @c hash gets updated constantly. */
-void siphash24_cbc_mac(uint8_t *hash, const uint8_t *in, uint8_t inlen, const uint8_t *key)
-{
-  // Process first 64-bit blocks
-  uint8_t rem = inlen;
-  while (rem >= 8) {
-    siphash24_hash(hash, in, key);
-    rem -= 8; in += 8;
-  }
+#define ROTL64_32(v) \
+{\
+	uint8_t vTemp;\
+	for (int i=0; i<4; i++) {\
+		vTemp = v[i];\
+		v[i] = v[i+4];\
+		v[i+4]=vTemp;\
+	}\
+} 
 
-  unsigned char block[8];
-  // store remaining data
-  memcpy(block, in, rem);
-  // 0-pad that up to 7-bytes
-  memset(block+rem, 0, 7-rem);
-  // store inlen mod 256 at last byte
-  block[7] = inlen;
-  // Last hash
-  siphash24_hash(hash, block, key);
+void reverse64(uint8_t *x) {
+	uint8_t xTemp;
+	for (int i=0; i<4; i++) {
+		xTemp = x[i];
+		x[i] = x[7-i];
+		x[7-i]=xTemp;
+	}
+} 
+	
+#define ADD64(v, s) \
+{ \
+  uint16_t carry = 0;\
+  for (int i=7; i>=0; i--) { \
+  	carry += v[i];\
+  	carry += s[i];\
+  	v[i] = carry; \
+  	carry = carry>>8; \
+  }\
+}
+
+#define ROTL64_xBITS(v,x) \
+{\
+	uint8_t v0 = (v)[0];\
+  for (int i=0; i<7; i++) {\
+  	(v)[i] = ((v)[i]<<(x)) | ((v)[i+1]>>(8-(x)));\
+  }\
+  (v)[7] =  ((v)[7]<<(x)) | (v0>>(8-(x)));\
+}	
+
+#define ROTR64_xBITS(v,x) \
+{\
+	uint8_t v7 = (v)[7];\
+	for (int i=7; i>0; i--) {\
+		(v)[i] = ((v)[i]>>(x)) | ((v)[i-1]<<(8-(x)));\
+	}\
+	(v)[0] =  ((v)[0]>>(x)) | (v7<<(8-(x)));\
+}	
+
+
+#define ROL_17BITS(v) rotl64_16(v);\
+  ROTL64_xBITS(v,1);
+
+#define ROL_21BITS(v) rotl64_16(v);\
+  ROTL64_xBITS(v,5);
+
+#define ROL_13BITS(v) rotl64_16(v);\
+  ROTR64_xBITS(v,3);
+  
+// the state in RAM  public for debugging
+uint8_t v0[8], v1[8], v2[8], v3[8];
+uint8_t m[8]; // bytes to hash
+int8_t m_idx;  // counts from 7 down to -1
+uint8_t msg_byte_counter; // count of msg bytes % 256
+
+// Forward declarations
+void siphash_hash(uint8_t* m);
+void siphash_round(void);
+
+// init values in FLASH
+unsigned const char v0_init[] PROGMEM = {0x73, 0x6f, 0x6d, 0x65, 0x70, 0x73, 0x65, 0x75};
+unsigned const char v1_init[] PROGMEM = {0x64, 0x6f, 0x72, 0x61, 0x6e, 0x64, 0x6f, 0x6d};
+unsigned const char v2_init[] PROGMEM = {0x6c, 0x79, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61};
+unsigned const char v3_init[] PROGMEM = {0x74, 0x65, 0x64, 0x62, 0x79, 0x74, 0x65, 0x73};
+
+
+void
+siphash_cbc_mac_progmem(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret) {
+  siphash_init_from_progmem(secret);
+  for (uint8_t i=0; i<len; i++) { siphash_update(data[i]); }
+  siphash_finish();
+  siphash_get(hash);
+}
+
+void
+siphash_cbc_mac(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret) {
+  siphash_init(secret);
+  for (uint8_t i=0; i<len; i++) { siphash_update(data[i]); }
+  siphash_finish();
+  siphash_get(hash);
+}
+
+void siphash_init_from_progmem(const uint8_t *keyPrgPtrIn) {
+  uint8_t key[16];
+  memcpy_P(key, keyPrgPtrIn,16);
+  siphash_init(key);
+}
+
+void siphash_init(const uint8_t *key) {
+// init load initial state
+// and xors with key
+  memcpy_P(v0,v0_init,8);	
+  memcpy_P(v1,v1_init,8);	
+  memcpy_P(v2,v2_init,8);	
+  memcpy_P(v3,v3_init,8);
+  // now load first 8 bytes of the key reverse it and XOR with v0,v2
+  memcpy(m, key,8);
+  reverse64(m);
+  XOR64(v0, m);
+  XOR64(v2, m);
+  memcpy(m, key+8,8);
+  reverse64(m);
+  XOR64(v1, m);
+  XOR64(v3, m);
+  m_idx = 7;
+  msg_byte_counter = 0;
+}
+
+void siphash_update(uint8_t c) {
+	msg_byte_counter++; // count this one % 256
+	m[m_idx--] = c;
+	if (m_idx < 0) {
+		m_idx = 7; // reset index
+		// hash this 64 bits
+    siphash_hash(m);
+	}
+}
+
+/************************************************************************
+** m is the 8 bytes to hash, last set of 8 have length + padding added
+** m is in LittleEndian storage, i.e. 
+** reference msg of 0x00,0x01,0x02,..,0x0b,0x0c,0x0d,0x0e  + length is stored as
+** uint8_t m0[8] = {0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00};
+** uint8_t m1[8] = {0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08};
+**
+** result (after finalize()) is in BigEndian storage format
+**                                                                      
+************************************************************************/
+void siphash_hash(uint8_t* m) {
+  XOR64(v3, m);
+  siphash_round();
+  siphash_round();
+  XOR64(v0, m);
+}
+
+void siphash_round(void) {
+  ADD64(v0,v1); 
+  ADD64(v2,v3);
+  ROL_13BITS(v1);
+  ROTL64_16(v3);
+
+  XOR64(v1, v0);
+  XOR64(v3, v2);
+  ROTL64_32(v0); 
+
+  ADD64(v2, v1);
+  ADD64(v0, v3);
+  ROL_17BITS(v1);
+  ROL_21BITS(v3);
+
+  XOR64(v1, v2);
+  XOR64(v3, v0);
+  ROTL64_32(v2); 
+}
+
+/***********************************************************************
+** result in v0
+**                                                                     
+************************************************************************/
+void siphash_finish() {
+	// add msg length hash padd hash it and then do finish rounds
+	// m index is in range 7 to 0 
+	// zero out to index 0 and then put msg_byte_counter there
+	
+	// save msgLen before padding
+	uint8_t msgLen = msg_byte_counter; // count this one % 256
+
+	while (m_idx > 0) {
+    siphash_update(0);
+	}
+  siphash_update(msgLen);
+
+  v2[7] ^= 0xff; //	xor_ff(v2);
+  siphash_round();
+  siphash_round();
+  siphash_round();
+  siphash_round();
+    
+	XOR64(v0, v1);
+	XOR64(v0, v2);
+	XOR64(v0, v3);
+	// answer in result in BigEndian format
+  reverse64(v0);
+}
+
+void
+siphash_get(uint8_t *hash) {
+  memcpy(hash, v0, 8);
 }

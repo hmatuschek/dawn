@@ -26,7 +26,7 @@ const uint8_t ds1307_daysinmonth [] PROGMEM = { 31,28,31,30,31,30,31,31,30,31,30
 void ds1307_init() {
 	//init i2c
 	i2c_init();
-  _delay_ms(1);
+  _delay_ms(10);
 }
 
 /*

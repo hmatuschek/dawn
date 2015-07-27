@@ -18397,12 +18397,6 @@ USART&lt;p&gt;
 <part name="GND24" library="supply1" deviceset="GND" device=""/>
 <part name="GND25" library="supply1" deviceset="GND" device=""/>
 <part name="R27" library="rcl" deviceset="R-EU_" device="0207/10" value="4.7k"/>
-<part name="R28" library="rcl" deviceset="R-EU_" device="0204/5" value="1k"/>
-<part name="GND26" library="supply1" deviceset="GND" device=""/>
-<part name="T4" library="transistor-neu-to92" deviceset="*-NPN-" device="TO92-EBC" value="BC547B"/>
-<part name="R29" library="rcl" deviceset="R-EU_" device="0204/2V" value="10k"/>
-<part name="GND27" library="supply1" deviceset="GND" device=""/>
-<part name="P+1" library="supply1" deviceset="+5V" device=""/>
 <part name="P+2" library="supply1" deviceset="+5V" device=""/>
 <part name="X1" library="con-phoenix-508" deviceset="MKDSN1,5/2-5,08" device=""/>
 <part name="X2" library="con-phoenix-508" deviceset="MKDSN1,5/2-5,08" device=""/>
@@ -18472,12 +18466,6 @@ conrad: 183971</text>
 <instance part="GND24" gate="1" x="129.54" y="-83.82"/>
 <instance part="GND25" gate="1" x="93.98" y="-83.82"/>
 <instance part="R27" gate="G$1" x="78.74" y="-53.34"/>
-<instance part="R28" gate="G$1" x="88.9" y="-66.04" rot="R90"/>
-<instance part="GND26" gate="1" x="88.9" y="-83.82"/>
-<instance part="T4" gate="G$1" x="101.6" y="-43.18" rot="R90"/>
-<instance part="R29" gate="G$1" x="109.22" y="-48.26" rot="R90"/>
-<instance part="GND27" gate="1" x="109.22" y="-58.42"/>
-<instance part="P+1" gate="1" x="93.98" y="-35.56"/>
 <instance part="P+2" gate="1" x="129.54" y="-12.7"/>
 <instance part="X1" gate="-1" x="149.86" y="2.54"/>
 <instance part="X1" gate="-2" x="149.86" y="7.62"/>
@@ -18545,12 +18533,6 @@ conrad: 183971</text>
 <junction x="66.04" y="-27.94"/>
 <pinref part="P+11" gate="1" pin="+5V"/>
 <wire x1="66.04" y1="-25.4" x2="66.04" y2="-27.94" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="T4" gate="G$1" pin="C"/>
-<wire x1="93.98" y1="-38.1" x2="93.98" y2="-40.64" width="0.1524" layer="91"/>
-<wire x1="93.98" y1="-40.64" x2="96.52" y2="-40.64" width="0.1524" layer="91"/>
-<pinref part="P+1" gate="1" pin="+5V"/>
 </segment>
 <segment>
 <pinref part="P+12" gate="1" pin="+5V"/>
@@ -18636,16 +18618,6 @@ conrad: 183971</text>
 <pinref part="R25" gate="G$1" pin="1"/>
 <pinref part="GND24" gate="1" pin="GND"/>
 <wire x1="129.54" y1="-78.74" x2="129.54" y2="-81.28" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="R28" gate="G$1" pin="1"/>
-<pinref part="GND26" gate="1" pin="GND"/>
-<wire x1="88.9" y1="-81.28" x2="88.9" y2="-71.12" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="R29" gate="G$1" pin="1"/>
-<pinref part="GND27" gate="1" pin="GND"/>
-<wire x1="109.22" y1="-55.88" x2="109.22" y2="-53.34" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="GND20" gate="1" pin="GND"/>
@@ -18816,27 +18788,13 @@ conrad: 183971</text>
 <pinref part="T3" gate="G$1" pin="C"/>
 <wire x1="101.6" y1="-53.34" x2="93.98" y2="-53.34" width="0.1524" layer="91"/>
 <wire x1="93.98" y1="-53.34" x2="93.98" y2="-60.96" width="0.1524" layer="91"/>
-<pinref part="T4" gate="G$1" pin="B"/>
-<wire x1="101.6" y1="-45.72" x2="101.6" y2="-53.34" width="0.1524" layer="91"/>
-<junction x="101.6" y="-53.34"/>
-<pinref part="R28" gate="G$1" pin="2"/>
-<wire x1="88.9" y1="-53.34" x2="88.9" y2="-60.96" width="0.1524" layer="91"/>
 <wire x1="88.9" y1="-53.34" x2="83.82" y2="-53.34" width="0.1524" layer="91"/>
 <wire x1="93.98" y1="-53.34" x2="88.9" y2="-53.34" width="0.1524" layer="91"/>
 <pinref part="R27" gate="G$1" pin="2"/>
-<junction x="88.9" y="-53.34"/>
 <junction x="93.98" y="-53.34"/>
-</segment>
-</net>
-<net name="N$43" class="0">
-<segment>
 <pinref part="R24" gate="G$1" pin="1"/>
-<pinref part="R29" gate="G$1" pin="2"/>
-<wire x1="111.76" y1="-40.64" x2="109.22" y2="-40.64" width="0.1524" layer="91"/>
-<wire x1="109.22" y1="-40.64" x2="109.22" y2="-43.18" width="0.1524" layer="91"/>
-<pinref part="T4" gate="G$1" pin="E"/>
-<wire x1="109.22" y1="-40.64" x2="106.68" y2="-40.64" width="0.1524" layer="91"/>
-<junction x="109.22" y="-40.64"/>
+<wire x1="111.76" y1="-40.64" x2="93.98" y2="-40.64" width="0.1524" layer="91"/>
+<wire x1="93.98" y1="-40.64" x2="93.98" y2="-53.34" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$2" class="0">

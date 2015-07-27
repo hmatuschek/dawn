@@ -26,18 +26,20 @@ uint8_t __comm_get(Command *cmd) {
   case GET_TEMP:  size = 0; break;
   default: return 0;
   }
-  // Wait for the complete packet
-  while ((size+8) > uart_available()) { }
+  // Wait for the payload
+  while (size > uart_available()) { }
   uart_read((uint8_t *) &(cmd->payload), size);
+  // Wait for the MAC
+  while (8 > uart_available()) { }
   uart_read(cmd->mac, 8);
 
   // Check MAC
-  uint8_t hash[8] = {0,0,0,0,0,0,0,0};
-  siphash24_cbc_mac(hash, (uint8_t *)cmd, size-8, secret);
+  uint8_t hash[8];
+  siphash_cbc_mac_progmem(hash, (uint8_t *)cmd, size+1, secret);
   uint8_t correct = 1;
-  //for (uint16_t i=0; i<(size-8); i++) {
-  //  correct = ( correct && (hash[i]==cmd->mac[i]) );
-  //}
+  for (uint16_t i=0; i<8; i++) {
+    correct = ( correct && (hash[i]==cmd->mac[i]) );
+  }
   return correct;
 }
 
@@ -45,7 +47,7 @@ uint8_t __comm_get(Command *cmd) {
 uint8_t
 comm_wait(Command *cmd) {
   // Wait for command char
-  while (! uart_available()) ;
+  while (0 == uart_available()) ;
   cmd->command = uart_getc();
   // Try to read complete command:
   if ((cmd->command>CMD_MIN) && (cmd->command<CMD_MAX) && __comm_get(cmd)) {

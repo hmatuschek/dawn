@@ -25,10 +25,10 @@ ConfigDialog::ConfigDialog(Dawn &dawn, QWidget *parent) :
   this->setLayout(flayout);
 
   QObject::connect(now, SIGNAL(clicked()), this, SLOT(onSetTimeToNow()));
-  QObject::connect(_dtEdit, SIGNAL(editingFinished()), this, SLOT(onSetTime()));
+  //QObject::connect(_dtEdit, SIGNAL(editingFinished()), this, SLOT(onSetTime()));
   QObject::connect(&_timer, SIGNAL(timeout()), this, SLOT(onUpdateTime()));
 
-  _timer.setInterval(1000);
+  _timer.setInterval(5000);
   _timer.setSingleShot(false);
   _timer.start();
 }
@@ -51,8 +51,5 @@ ConfigDialog::onUpdateTime() {
   if (_dawn.getTemp(coreTemp, ambTemp)) {
     _coreTemp->setText(tr("%0 °C").arg(coreTemp));
     _ambTemp->setText(tr("%0 °C").arg(ambTemp));
-  } else {
-    _coreTemp = new QLabel(tr("--- °C"));
-    _ambTemp  = new QLabel(tr("--- °C"));
   }
 }

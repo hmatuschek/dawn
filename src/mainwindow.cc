@@ -31,7 +31,7 @@ MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
   table->horizontalHeader()->hide();
   table->verticalHeader()->hide();
   table->setModel(&_dawn);
-  table->setItemDelegateForColumn(1, new DayOfWeekDelegate());
+  table->setItemDelegateForColumn(0, new DayOfWeekDelegate());
   this->setCentralWidget(table);
 
   QObject::connect(quit, SIGNAL(triggered()), this, SLOT(close()));

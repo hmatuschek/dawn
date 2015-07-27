@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <inttypes.h>
+#include <unistd.h>
 
 #include "siphash24.h"
 #include "logger.hh"
@@ -35,7 +36,7 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
     return;
   }
 
-  if (! _port.setBaudRate(QSerialPort::Baud9600)) {
+  if (! _port.setBaudRate(QSerialPort::Baud38400)) {
     LogMessage msg(LOG_ERROR);
     msg << "IO: Can not set baudrate.";
     Logger::get().log(msg);
@@ -59,46 +60,25 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
     Logger::get().log(msg);
     return;
   }
-
-  // First, get current value
-  uint8_t tx_buffer[32];
-  uint8_t rx_buffer[32];
-  tx_buffer[0] = GET_VALUE;
-  if (! _send(tx_buffer, 1, rx_buffer, 2)) {
+  if (! _port.setFlowControl(QSerialPort::HardwareControl)) {
     LogMessage msg(LOG_ERROR);
-    msg << "Can not get current value: Command failed.";
+    msg << "IO: Can not set stop bits.";
     Logger::get().log(msg);
     return;
-  } else {
-    LogMessage msg(LOG_DEBUG);
-    msg << "Current value " << ((int(rx_buffer[0])<<8) + int(rx_buffer[1]));
-    Logger::get().log(msg);
   }
+
+  // First, get current value
+  value(&_valid);
 
   _alarms.resize(7);
   for (size_t i=0; i<7; i++) {
-    // Get i-th alarm setting
-    tx_buffer[0] = GET_ALARM; tx_buffer[1] = i;
-    if (! _send(tx_buffer, 2, rx_buffer, 3)) {
-      LogMessage msg(LOG_ERROR);
-      msg << "Can not get alarm setting (idx="
-          << i << "): Command failed.";
-      Logger::get().log(msg);
-      return;
+    bool ok = true;
+    for (int j=0; j<5; j++) {
+      loadAlarm(i, &ok);
+      if (ok) { break; }
+      usleep(100000);
     }
-    uint8_t dayofweek = (rx_buffer[1] & 0x7f);
-    uint8_t hour      = rx_buffer[2];
-    uint8_t minute    = rx_buffer[3];
-    // Check for consistency
-    if ((hour < 0) || (hour > 23)) { dayofweek = 0; hour=0; }
-    if ((minute < 0) || (minute > 59)) { dayofweek = 0; minute=0; }
-    if (0 != (dayofweek & 0x80)) { dayofweek = 0; }
-    // Add to list of alarms
-    _alarms[i].dowFlags = dayofweek;
-    _alarms[i].time = QTime(hour, minute);
   }
-
-  _valid = true;
 }
 
 bool
@@ -110,6 +90,7 @@ size_t
 Dawn::numAlarms() const {
   return _alarms.size();
 }
+
 
 const Dawn::Alarm &
 Dawn::alarm(size_t idx) const {
@@ -130,16 +111,46 @@ Dawn::setAlarm(size_t idx, const Alarm &alarm) {
   return true;
 }
 
+const Dawn::Alarm &
+Dawn::loadAlarm(size_t i, bool *ok) {
+  // Get i-th alarm setting
+  uint8_t tx_buffer[2] = { GET_ALARM, (uint8_t) i }, rx_buffer[3];
+  if (! _send(tx_buffer, 2, rx_buffer, 3)) {
+    LogMessage msg(LOG_ERROR);
+    msg << "Can not get alarm setting (idx="
+        << i << "): Command failed.";
+    Logger::get().log(msg);
+    if (ok) { *ok = false; }
+    _alarms[i].dowFlags = 0;
+    _alarms[i].time = QTime();
+  } else {
+    uint8_t dayofweek = (rx_buffer[0] & 0x7f);
+    uint8_t hour      = rx_buffer[1];
+    uint8_t minute    = rx_buffer[2];
+    // Check for consistency
+    if ((hour > 23) || (minute > 59) || (dayofweek & 0x80)) {
+      dayofweek = 0; hour=0; minute=0;
+    }
+    // Add to list of alarms
+    _alarms[i].dowFlags = dayofweek;
+    _alarms[i].time = QTime(hour, minute);
+    *ok = true;
+  }
+  return _alarms[i];
+}
+
 uint16_t
-Dawn::value() {
+Dawn::value(bool *ok) {
   uint8_t tx[1], rx[2];
   tx[0] = GET_VALUE;
   if (! _send(tx, 1, rx, 2)) {
     LogMessage msg(LOG_WARNING);
     msg << "Can not get value: Command faild.";
     Logger::get().log(msg);
+    if (ok) { *ok = false; }
     return 0;
   }
+  if (ok) { *ok = true; }
   return (uint16_t(rx[0])<<8) | rx[1];
 }
 
@@ -157,7 +168,7 @@ Dawn::setValue(uint16_t value) {
 }
 
 QDateTime
-Dawn::time() {
+Dawn::time(bool *ok) {
   // Allocat buffers
   uint8_t  tx[1] = {GET_TIME}, rx[7];
   // send/receive
@@ -165,9 +176,10 @@ Dawn::time() {
     LogMessage msg(LOG_WARNING);
     msg << "Can not get current time: Command failed.";
     Logger::get().log(msg);
+    if (ok) { *ok = false; }
     return QDateTime();
   }
-  // unpack.
+  if (ok) { *ok = true; }
   return QDateTime(QDate( 2000 + rx[0], rx[1], rx[2]),
       QTime(rx[4], rx[5], rx[6]));
 }
@@ -196,7 +208,7 @@ Dawn::getTemp(double &core, double &amb) {
     return false;
   }
   core = *((uint16_t *)rx);
-  core = 25 + ((core*1.1)/1024. - 0.314)*1000;
+  core = 25 + ((core*1.1)/0xffff - 0.314)*1000;
 
   amb  = *((uint16_t *)(rx+2));
 
@@ -210,14 +222,13 @@ Dawn::rowCount(const QModelIndex &parent) const {
 
 int
 Dawn::columnCount(const QModelIndex &parent) const {
-  return 3;
+  return 2;
 }
 
 Qt::ItemFlags
 Dawn::flags(const QModelIndex &index) const {
-  if (0 == index.column()) { return Qt::ItemIsEnabled | Qt::ItemIsEditable | Qt::ItemIsUserCheckable; }
+  if (0 == index.column()) { return Qt::ItemIsEnabled | Qt::ItemIsEditable; }
   if (1 == index.column()) { return Qt::ItemIsEnabled | Qt::ItemIsEditable; }
-  if (2 == index.column()) { return Qt::ItemIsEnabled | Qt::ItemIsEditable; }
   return Qt::ItemFlags();
 }
 
@@ -231,20 +242,23 @@ Dawn::data(const QModelIndex &index, int role) const
   if (Qt::DisplayRole == role) {
     if (0 == index.column()) {
       QStringList repr;
-      if (Dawn::MONDAY == (alarm.dowFlags & Dawn::MONDAY)) { repr << tr("Monday"); }
-      if (Dawn::TUESDAY == (alarm.dowFlags & Dawn::TUESDAY)) { repr << tr("Tuesday"); }
-      if (Dawn::WEDNESDAY == (alarm.dowFlags & Dawn::WEDNESDAY)) { repr << tr("Wednesday"); }
-      if (Dawn::THURSDAY == (alarm.dowFlags & Dawn::THURSDAY)) { repr << tr("Thursday"); }
-      if (Dawn::FRIDAY == (alarm.dowFlags & Dawn::FRIDAY)) { repr << tr("Friday"); }
-      if (Dawn::SATURDAY == (alarm.dowFlags & Dawn::SATURDAY)) { repr << tr("Saturday"); }
-      if (Dawn::SUNDAY == (alarm.dowFlags & Dawn::SUNDAY)) { repr << tr("Sunday"); }
-      if (0b1111111 == alarm.dowFlags) { repr.clear(); repr << tr("Every day"); }
-      if (0b1000001 == alarm.dowFlags) { repr.clear(); repr << tr("Weekend"); }
-      if (0b0111110 == alarm.dowFlags) { repr.clear(); repr << tr("Work day"); }
-      if (0 == repr.size()) { repr << tr("Never"); }
+      if (0b0000000 == alarm.dowFlags) { repr << tr("Never"); }
+      else if (0b1111111 == alarm.dowFlags) { repr.clear(); repr << tr("Every day"); }
+      else if (0b1000001 == alarm.dowFlags) { repr.clear(); repr << tr("Weekend"); }
+      else if (0b0111110 == alarm.dowFlags) { repr.clear(); repr << tr("Work day"); }
+      else {
+        if (Dawn::MONDAY == (alarm.dowFlags & Dawn::MONDAY)) { repr << tr("Monday"); }
+        if (Dawn::TUESDAY == (alarm.dowFlags & Dawn::TUESDAY)) { repr << tr("Tuesday"); }
+        if (Dawn::WEDNESDAY == (alarm.dowFlags & Dawn::WEDNESDAY)) { repr << tr("Wednesday"); }
+        if (Dawn::THURSDAY == (alarm.dowFlags & Dawn::THURSDAY)) { repr << tr("Thursday"); }
+        if (Dawn::FRIDAY == (alarm.dowFlags & Dawn::FRIDAY)) { repr << tr("Friday"); }
+        if (Dawn::SATURDAY == (alarm.dowFlags & Dawn::SATURDAY)) { repr << tr("Saturday"); }
+        if (Dawn::SUNDAY == (alarm.dowFlags & Dawn::SUNDAY)) { repr << tr("Sunday"); }
+      }
+      return repr.join(", ");
     }
     if (1 == index.column()) {
-      return alarm.time.toString();
+      return alarm.time.toString("HH:mm");
     }
   } else if (Qt::EditRole == role) {
     if (0 == index.column()) { return int(alarm.dowFlags); }
@@ -255,14 +269,14 @@ Dawn::data(const QModelIndex &index, int role) const
 
 bool
 Dawn::setData(const QModelIndex &index, const QVariant &value, int role) {
-  if (index.column() > 2) { return false; }
+  if (index.column() > 1) { return false; }
   if (index.row() >= int(numAlarms())) { return false; }
   // Get current config
   Alarm alarm = this->alarm(index.row());
   // Update config
   if (Qt::EditRole == role) {
     if (0 == index.column()) { alarm.dowFlags = uint8_t(value.toUInt()); }
-    if (1 == index.column()) { alarm.time = value.toTime(); }
+    else if (1 == index.column()) { alarm.time = value.toTime(); }
   } else {
     return false;
   }
@@ -320,6 +334,7 @@ Dawn::_read(uint8_t *buffer, size_t len) {
       Logger::get().log(msg);
       return false;
     }
+    rem -= got;
   }
   return true;
 }
@@ -331,7 +346,7 @@ Dawn::_sign(uint8_t *buffer, size_t len) {
 
 void
 Dawn::_sign(uint8_t *buffer, size_t len, uint8_t *sig) {
-  memset(sig, 0, 8);
+  for (size_t i=0; i<8; i++) { sig[0] = 0; }
   siphash24_cbc_mac(sig, buffer, len, _secret);
 }
 
@@ -346,10 +361,13 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   memcpy(tx_buffer, cmd, cmd_len);
   _sign(tx_buffer, cmd_len);
 
+  _port.clear();
   {
     LogMessage msg(LOG_DEBUG);
     msg << "send() (" << cmd_len+8 << "):";
-    for (size_t i=0; i<(cmd_len+8); i++) { msg << " " << std::hex << tx_buffer[i]; }
+    for (size_t i=0; i<(cmd_len+8); i++) {
+      msg << " " << std::hex << int(tx_buffer[i]);
+    }
     Logger::get().log(msg);
   }
 
@@ -371,10 +389,12 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   // check response code
   if (resp_code) {
     LogMessage msg(LOG_WARNING);
-    msg << "send(): Device returned error code (" << std::hex << resp_code << ")";
+    msg << "send(): Device returned error code (" << std::hex << int(resp_code) << ")";
     Logger::get().log(msg);
+    _recover();
     return false;
   }
+
   // Read response (if any)
   if (resp_len) {
     if (! _read(resp, resp_len)) {
@@ -391,7 +411,7 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
     if (resp_len) {
       msg << " (" << resp_len << "): ";
       for (size_t i=0; i<resp_len; i++) {
-        msg << " " << std::hex << resp[i];
+        msg << " " << std::hex << int(resp[i]);
       }
     } else {
       msg << ".";
@@ -399,5 +419,12 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
     Logger::get().log(msg);
   }
 
+  return true;
+}
+
+
+bool
+Dawn::_recover() {
+  LogMessage msg(LOG_INFO); msg << "IO: Recover."; Logger::get().log(msg);
   return true;
 }

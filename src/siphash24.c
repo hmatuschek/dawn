@@ -13,9 +13,8 @@
    this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 */
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
-#include "siphash24.h"
-
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint8_t u8;
@@ -48,59 +47,57 @@ typedef uint8_t u8;
     v2 += v1; v1=ROTL(v1,17); v1 ^= v2; v2=ROTL(v2,32); \
   } while(0)
 
-
 /* SipHash-2-4 */
 void
-siphash24_hash(unsigned char *hash, const unsigned char *block, const unsigned char *k)
+siphash24_cbc_mac(uint8_t *out, const uint8_t *in, size_t inlen, const uint8_t *k )
 {
   /* "somepseudorandomlygeneratedbytes" */
   u64 v0 = 0x736f6d6570736575ULL;
   u64 v1 = 0x646f72616e646f6dULL;
   u64 v2 = 0x6c7967656e657261ULL;
   u64 v3 = 0x7465646279746573ULL;
+  u64 b;
   u64 k0 = U8TO64_LE( k );
   u64 k1 = U8TO64_LE( k + 8 );
   u64 m;
+  const u8 *end = in + inlen - ( inlen % sizeof( u64 ) );
+  const int left = inlen & 7;
+  b = ( ( u64 )inlen ) << 56;
   v3 ^= k1;
   v2 ^= k0;
   v1 ^= k1;
   v0 ^= k0;
 
-  m = U8TO64_LE( block ) ^ U8TO64_LE(hash);
-  v3 ^= m;
-  SIPROUND;
-  SIPROUND;
-  v0 ^= m;
+  for ( ; in != end; in += 8 ) {
+    m = U8TO64_LE( in );
+    v3 ^= m;
+    SIPROUND;
+    SIPROUND;
+    v0 ^= m;
+  }
 
+  switch( left )
+  {
+  case 7: b |= ( ( u64 )in[ 6] )  << 48;
+  case 6: b |= ( ( u64 )in[ 5] )  << 40;
+  case 5: b |= ( ( u64 )in[ 4] )  << 32;
+  case 4: b |= ( ( u64 )in[ 3] )  << 24;
+  case 3: b |= ( ( u64 )in[ 2] )  << 16;
+  case 2: b |= ( ( u64 )in[ 1] )  <<  8;
+  case 1: b |= ( ( u64 )in[ 0] ); break;
+  case 0: break;
+  }
+
+  v3 ^= b;
+  SIPROUND;
+  SIPROUND;
+  v0 ^= b;
   v2 ^= 0xff;
   SIPROUND;
   SIPROUND;
   SIPROUND;
   SIPROUND;
-  U64TO8_LE( hash, v0 ^ v1 ^ v2 ^ v3 );
+  b = v0 ^ v1 ^ v2  ^ v3;
+  U64TO8_LE( out, b );
 }
 
-
-/** Computes the CBC-MAC from the @c inlen bytes stored in @c in using the @c key and the
- * current @c hash value as the IV. The @c hash gets updated constantly. */
-void siphash24_cbc_mac(unsigned char *hash,
-                       const unsigned char *in, unsigned long long inlen,
-                       const unsigned char *key)
-{
-  // Process first 64-bit blocks
-  unsigned long long rem = inlen;
-  while (rem >= 8) {
-    siphash24_hash(hash, in, key);
-    rem -= 8; in += 8;
-  }
-
-  unsigned char block[8];
-  // store remaining data
-  memcpy(block, in, rem);
-  // 0-pad that up to 7-bytes
-  memset(block+rem, 0, 7-rem);
-  // store inlen mod 256 at last byte
-  block[7] = inlen;
-  // Last hash
-  siphash24_hash(hash, block, key);
-}

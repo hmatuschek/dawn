@@ -9,9 +9,12 @@ typedef enum {
   KEY_HOLD  = 2
 } KeyState;
 
-void gpio_init();
-uint8_t gpio_pin(uint8_t key);
-KeyState gpio_update_key(uint8_t key);
+// Initializes the capacitive touch "sensors".
+void touch_init();
+// Touch sensor readout (NONE, KLICK, HOLD)
+KeyState touch_pin(uint8_t key);
+// Update keys.
+void touch_update_keys();
 
 
 #endif // __DAWN_GPIO_H__

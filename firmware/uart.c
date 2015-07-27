@@ -16,6 +16,7 @@ uart_init(uint16_t baud_prescale) {
   PRR    &= ~(1<<PRUSART0);
   // Enable receiver and transmitter & RX interrupt
   UCSR0B |= (1 << RXCIE0) | (1 << RXEN0) | (1 << TXEN0);
+  //UCSR0B |= (1 << RXEN0) | (1 << TXEN0);
   // Set frame: 8data, 1 stop
   UCSR0C |= (1 << UCSZ01) | (1 << UCSZ00);
   // Set buadrate
@@ -33,7 +34,7 @@ uart_available() {
 
 uint8_t
 uart_getc() {
-  if (uart_rx_head == uart_rx_tail) { return 0; }
+  while (uart_rx_head == uart_rx_tail) { }
   uint8_t c = uart_rx_buffer[uart_rx_tail];
   uart_rx_tail = (uart_rx_tail+1) & UART_BUFFER_MASK;
   return c;

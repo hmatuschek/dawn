@@ -10,74 +10,90 @@
 
 typedef struct {
   KeyState last_state;
+  KeyState state;
   uint16_t tick_count;
 } KeyContext;
 
-static KeyContext keys[4] = {
+static KeyContext keys[3] = {
   {KEY_NONE, 0},
   {KEY_NONE, 0},
-  {KEY_NONE, 0},
-  {KEY_NONE, 0} };
+  {KEY_NONE, 0}};
 
 void
-gpio_init() {
-  // PB1, PD7, PD6, PD5 is now an output
-  DDRB &= ~(1 << DDB0);
-  DDRD &= ~((1 << DDB7) | (1 << DDB6) | (1 << DDB5));
-  // Enables pull-ups
-  PORTB |= (1 << DDB0);
-  PORTD |= (1 << DDD7) | (1 << DDD6) | (1 << DDD5);
+touch_init() {
+  // PB0 is output
+  DDRB  |= (1 << DDB0);
+  // Set zero
+  PORTB &= ~(1 << DDB0);
+  // PD7, PD6, PD5 are inputs
+  DDRD  &= ~((1 << DDD7) | (1 << DDD6) | (1 << DDD5));
+  // Disable pull-ups
+  PORTD &= ~((1 << DDD7) | (1 << DDD6) | (1 << DDD5));
   // Init keys
   keys[0].last_state = KEY_NONE;  keys[0].tick_count = 0;
   keys[1].last_state = KEY_NONE;  keys[1].tick_count = 0;
   keys[2].last_state = KEY_NONE;  keys[2].tick_count = 0;
-  keys[3].last_state = KEY_NONE;  keys[3].tick_count = 0;
 }
 
-
-uint8_t
-gpio_pin(uint8_t key) {
-  switch (key) {
-  case 0: return 0 == (PINB & (1<<DDB0));
-  case 1: return 0 == (PIND & (1<<DDD7));
-  case 2: return 0 == (PIND & (1<<DDD6));
-  case 3: return 0 == (PIND & (1<<DDD5));
-  default: break;
-  }
-  return 0;
-}
 
 KeyState
-gpio_update_key(uint8_t key)
-{
-  // There are only 4 keys
-  if (key > 3) { return KEY_NONE; }
-  // On key down
-  if (gpio_pin(key)) {
-    // If key pressed
-    if (KEY_NONE == keys[key].last_state) {
-      keys[key].last_state = KEY_KLICK;
-      keys[key].tick_count = 1;
-      return KEY_NONE;
-    }
-    // increment tick counter
-    keys[key].tick_count++;
-    // If key was pressed longer than KEY_HOLD_DUR
-    if (keys[key].tick_count >= KEY_HOLD_DUR) {
-      keys[key].tick_count = 1;
-      keys[key].last_state = KEY_HOLD;
-      return KEY_HOLD;
-    } else if (KEY_HOLD == keys[key].last_state) {
-      return KEY_HOLD;
-    }
-    return KEY_NONE;
-  }
-  // On key up
-  if (KEY_NONE == keys[key].last_state) { return KEY_NONE; }
-  if (KEY_KLICK == keys[key].last_state) {
-    keys[key].last_state = KEY_NONE;
+touch_pin(uint8_t key) {
+  // There are only 3 keys
+  if (key > 2) { return KEY_NONE; }
+  if (KEY_KLICK == keys[key].state) {
+    keys[key].state = KEY_NONE;
     return KEY_KLICK;
   }
-  keys[key].last_state = KEY_NONE;
-  return KEY_NONE;
+  return keys[key].state;
+}
+
+void gpio_update_key(uint8_t key) {
+  // Get current output values:
+  uint8_t out = (0 != (PORTB & (1<<DDB1)));
+  uint8_t k   = 0;
+  switch (key) {
+  case 0: k = (out ^ (0 != (PORTD & (1<<DDD7)))); break;
+  case 1: k = (out ^ (0 != (PORTD & (1<<DDD6)))); break;
+  case 2: k = (out ^ (0 != (PORTD & (1<<DDD5)))); break;
+  }
+  if (k) {
+    switch (keys[key].last_state) {
+    case KEY_NONE:
+      keys[key].last_state = KEY_KLICK;
+      keys[key].tick_count = 0;
+      break;
+    case KEY_KLICK:
+      keys[key].tick_count++;
+      if (keys[key].tick_count > 500) {
+        keys[key].last_state = KEY_HOLD;
+        keys[key].state      = KEY_HOLD;
+      }
+      break;
+    case KEY_HOLD:
+      break;
+    }
+  } else {
+    switch (keys[key].last_state) {
+    case KEY_NONE:
+      break;
+    case KEY_KLICK:
+      keys[key].last_state = KEY_NONE;
+      keys[key].state      = KEY_KLICK;
+      break;
+    case KEY_HOLD:
+      keys[key].last_state = KEY_NONE;
+      keys[key].state      = KEY_NONE;
+      break;
+    }
+  }
+}
+
+void touch_update_keys()
+{
+  // update current key states
+  gpio_update_key(0);
+  gpio_update_key(1);
+  gpio_update_key(2);
+  // toggle supply pin
+  PORTB ^= (1<<DDB1);
 }
