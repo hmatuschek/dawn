@@ -49,12 +49,11 @@ touch_pin(uint8_t key) {
 
 void gpio_update_key(uint8_t key) {
   // Get current output values:
-  uint8_t out = (0 != (PORTB & (1<<DDB1)));
   uint8_t k   = 0;
   switch (key) {
-  case 0: k = (out ^ (0 != (PORTD & (1<<DDD7)))); break;
-  case 1: k = (out ^ (0 != (PORTD & (1<<DDD6)))); break;
-  case 2: k = (out ^ (0 != (PORTD & (1<<DDD5)))); break;
+  case 0: k = (PORTD & (1<<DDD7)); break;
+  case 1: k = (PORTD & (1<<DDD6)); break;
+  case 2: k = (PORTD & (1<<DDD5)); break;
   }
   if (k) {
     switch (keys[key].last_state) {
@@ -90,10 +89,13 @@ void gpio_update_key(uint8_t key) {
 
 void touch_update_keys()
 {
-  // update current key states
-  gpio_update_key(0);
-  gpio_update_key(1);
-  gpio_update_key(2);
+  // Check state only if charging C
+  if (PORTB & (1<<DDB1)) {
+    // update current key states
+    gpio_update_key(0);
+    gpio_update_key(1);
+    gpio_update_key(2);
+  }
   // toggle supply pin
   PORTB ^= (1<<DDB1);
 }
