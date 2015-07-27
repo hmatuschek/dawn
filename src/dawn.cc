@@ -359,7 +359,7 @@ bool
 Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   uint8_t tx_buffer[cmd_len+8];
   memcpy(tx_buffer, cmd, cmd_len);
-  _sign(tx_buffer, cmd_len);
+  _sign(tx_buffer, cmd_len, tx_buffer+cmd_len);
 
   _port.clear();
   {

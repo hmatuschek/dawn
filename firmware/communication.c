@@ -1,6 +1,7 @@
 #include "communication.h"
 #include "uart.h"
 #include "siphash24.h"
+#include <string.h>
 
 // Needs to be included before secret.
 #include <avr/pgmspace.h>
@@ -21,7 +22,7 @@ uint8_t __comm_get(Command *cmd) {
   case SET_VALUE: size = 2; break;
   case GET_TIME:  size = 0; break;
   case SET_TIME:  size = 7; break;
-  case GET_ALARM: size = 0; break;
+  case GET_ALARM: size = 1; break;
   case SET_ALARM: size = 4; break;
   case GET_TEMP:  size = 0; break;
   default: return 0;
@@ -35,12 +36,11 @@ uint8_t __comm_get(Command *cmd) {
 
   // Check MAC
   uint8_t hash[8];
-  siphash_cbc_mac_progmem(hash, (uint8_t *)cmd, size+1, secret);
-  uint8_t correct = 1;
-  for (uint16_t i=0; i<8; i++) {
-    correct = ( correct && (hash[i]==cmd->mac[i]) );
+  siphash_cbc_mac_progmem(hash, (uint8_t *) cmd, size+1, secret);
+  for (uint8_t i=0; i<8; i++) {
+    if (hash[i] != cmd->mac[i]) { return 0; }
   }
-  return correct;
+  return 1;
 }
 
 

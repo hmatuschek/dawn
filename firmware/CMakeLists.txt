@@ -18,7 +18,7 @@ include(generic-gcc-avr)
 
 # Typical options
 add_definitions("-DF_CPU=${MCU_SPEED}")
-#add_definitions("-fpack-struct")
+add_definitions("-fpack-struct")
 add_definitions("-fshort-enums")
 add_definitions("-Wall")
 add_definitions("-Werror")

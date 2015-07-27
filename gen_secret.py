@@ -33,5 +33,5 @@ static const uint8_t secret[] PROGMEM = { $key };
 #endif
 """
 
-key = ", ".join(map(lambda i: "0x{0}".format(sys.argv[1][i:i+2]), range(0,16,2)))
+key = ", ".join(map(lambda i: "0x{0}".format(sys.argv[1][i:i+2]), range(0,32,2)))
 open(sys.argv[2], "w").write(Template(template).substitute(key=key))
