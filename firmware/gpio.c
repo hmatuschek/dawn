@@ -17,18 +17,15 @@ typedef struct {
 static KeyContext keys[3] = {
   {KEY_NONE, 0},
   {KEY_NONE, 0},
-  {KEY_NONE, 0}};
+  {KEY_NONE, 0}
+};
 
 void
-touch_init() {
-  // PB0 is output
-  DDRB  |= (1 << DDB0);
-  // Set zero
-  PORTB &= ~(1 << DDB0);
+key_init() {
   // PD7, PD6, PD5 are inputs
   DDRD  &= ~((1 << DDD7) | (1 << DDD6) | (1 << DDD5));
-  // Disable pull-ups
-  PORTD &= ~((1 << DDD7) | (1 << DDD6) | (1 << DDD5));
+  // Enables pull-ups
+  PORTD |= ((1 << DDD7) | (1 << DDD6) | (1 << DDD5));
   // Init keys
   keys[0].last_state = KEY_NONE;  keys[0].tick_count = 0;
   keys[1].last_state = KEY_NONE;  keys[1].tick_count = 0;
@@ -36,18 +33,7 @@ touch_init() {
 }
 
 
-KeyState
-touch_pin(uint8_t key) {
-  // There are only 3 keys
-  if (key > 2) { return KEY_NONE; }
-  if (KEY_KLICK == keys[key].state) {
-    keys[key].state = KEY_NONE;
-    return KEY_KLICK;
-  }
-  return keys[key].state;
-}
-
-void gpio_update_key(uint8_t key) {
+void key_update(uint8_t key) {
   // Get current output values:
   uint8_t k   = 0;
   switch (key) {
@@ -58,14 +44,15 @@ void gpio_update_key(uint8_t key) {
   if (k) {
     switch (keys[key].last_state) {
     case KEY_NONE:
-      keys[key].last_state = KEY_KLICK;
+      keys[key].last_state = KEY_CLICK;
       keys[key].tick_count = 0;
       break;
-    case KEY_KLICK:
-      keys[key].tick_count++;
-      if (keys[key].tick_count > 500) {
+    case KEY_CLICK:
+      if (keys[key].tick_count == 5) {
         keys[key].last_state = KEY_HOLD;
         keys[key].state      = KEY_HOLD;
+      } else {
+        keys[key].tick_count++;
       }
       break;
     case KEY_HOLD:
@@ -75,27 +62,32 @@ void gpio_update_key(uint8_t key) {
     switch (keys[key].last_state) {
     case KEY_NONE:
       break;
-    case KEY_KLICK:
+    case KEY_CLICK:
       keys[key].last_state = KEY_NONE;
-      keys[key].state      = KEY_KLICK;
+      keys[key].state      = KEY_CLICK;
       break;
     case KEY_HOLD:
       keys[key].last_state = KEY_NONE;
       keys[key].state      = KEY_NONE;
       break;
     }
+    keys[key].tick_count = 0;
   }
 }
 
-void touch_update_keys()
+void key_update_keys()
 {
   // Check state only if charging C
   if (PORTB & (1<<DDB1)) {
     // update current key states
-    gpio_update_key(0);
-    gpio_update_key(1);
-    gpio_update_key(2);
+    key_update(0);
+    key_update(1);
+    key_update(2);
   }
   // toggle supply pin
   PORTB ^= (1<<DDB1);
+}
+
+KeyState key(uint8_t key) {
+  return keys[key].state;
 }

@@ -17,7 +17,7 @@ MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
 
   QToolBar *toolbar = this->addToolBar(tr("Toolbar"));
 
-  QAction *config = toolbar->addAction(tr("Config"));
+  QAction *config = toolbar->addAction(QIcon(":/settings.png"), tr("Config"));
 
   QSlider *bright = new QSlider(Qt::Horizontal);
   bright->setMinimum(0);
@@ -25,10 +25,10 @@ MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
   bright->setValue(_dawn.value());
   toolbar->addWidget(bright);
 
-  QAction *quit = toolbar->addAction(tr("Quit"));
+  QAction *quit = toolbar->addAction(QIcon(":/quit.png"), tr("Quit"));
 
   QTableView *table = new QTableView();
-  table->horizontalHeader()->hide();
+  //table->horizontalHeader()->hide();
   table->verticalHeader()->hide();
   table->setModel(&_dawn);
   table->setItemDelegateForColumn(0, new DayOfWeekDelegate());
@@ -47,6 +47,6 @@ MainWindow::onConfig() {
 
 void
 MainWindow::onSetBrightness(int value) {
-  value = std::max(0, std::min(value, 65535));
+  value = std::max(0, std::min(value, 0xffff));
   _dawn.setValue(value);
 }

@@ -18,5 +18,5 @@ pwm_init() {
 
 void
 pwm_set(uint16_t value) {
-  OCR1A = value;
+  OCR1A = (value>>6);
 }

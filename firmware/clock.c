@@ -11,7 +11,7 @@
 #include <string.h>
 
 #include "dawnfunction.h"
-
+#include "gpio.h"
 
 // Specifies the maximum duration of the alarm (2h)
 #define CLOCK_ALARM_MAX_SEC 7200
@@ -41,10 +41,10 @@ Alarm storedAlarm[CLOCK_N_ALARM] EEMEM = {
 // interpolation function for the dawn function table
 uint16_t clock_map_dawn_func(uint16_t value) {
   uint8_t idx  = (value>>8);
-  uint8_t frac = (value & 0xff);
-  uint32_t a = (0 == idx) ? 0 : dawn_func[idx-1];
-  uint32_t b = dawn_func[idx];
-  uint16_t x = ((0x100-frac)*a + frac*b)/512;
+  uint8_t frac = (value & 0x00ffu);
+  uint32_t a = pgm_read_word_near(&dawn_func[idx]);
+  uint32_t b = (0xff==idx) ? 0xffffu : pgm_read_word_near(&dawn_func[idx+1]);
+  uint16_t x = ((0xff-frac)*a + frac*b)>>8;
   return x;
 }
 
@@ -58,7 +58,7 @@ clock_init() {
   clock.alarmSeconds = 0;
 
   // init keys
-  touch_init();
+  key_init();
 
   // init pwm
   pwm_init();
@@ -73,7 +73,7 @@ clock_init() {
       ds1307_getdayofweek(clock.datetime.year, clock.datetime.month, clock.datetime.day);
 
   // Read alarm settings from EEPROM
-  eeprom_read_block((Alarm *)clock.alarm, storedAlarm, 7*sizeof(Alarm));
+  eeprom_read_block((Alarm *)clock.alarm, storedAlarm, CLOCK_N_ALARM*sizeof(Alarm));
 
   // Configure timer0 to trigger interrupt about every 10ms
   TCCR0A =
@@ -159,6 +159,7 @@ ISR(TIMER0_COMPA_vect) {
                    (uint8_t *) &(clock.datetime.hour), (uint8_t *) &(clock.datetime.minute), (uint8_t *) &(clock.datetime.second));
     clock.datetime.dayOfWeek =
         ds1307_getdayofweek(clock.datetime.year, clock.datetime.month, clock.datetime.day);
+
     // If alarm -> update alarm seconds counter
     if (CLOCK_ALARM == clock.state) {
       clock.alarmSeconds++;
@@ -168,8 +169,9 @@ ISR(TIMER0_COMPA_vect) {
         pwm_set(clock.value);
       }
     }
-    // Check for alarm if enabled (pin0 -> high)
-    if ( (CLOCK_WAIT == clock.state) && (0x00ff > clock.value) && alarm_match() ) {
+
+    // Check for alarm if enabled
+    if ( (CLOCK_WAIT == clock.state) && (0x00ff > clock.value) && alarm_match() && (KEY_HOLD == key(2)) ) {
       // Start alarm
       clock.state = CLOCK_ALARM;
       clock.alarmSeconds = 0;
@@ -177,56 +179,42 @@ ISR(TIMER0_COMPA_vect) {
   }
 
   // Every 50ms -> update dawn table index
-  if ((clock.ticks % 5) && (CLOCK_ALARM == clock.state)) {
+  if ((CLOCK_ALARM == clock.state) && (0 == (clock.ticks % 5))) {
     if (0xFFFF > clock.value) { clock.value++; }
     pwm_set(clock_map_dawn_func(clock.value));
   }
 
-  // Check down key:
-  touch_update_keys();
-
-  /*switch (gpio_update_key(0)) {
-  case KEY_KLICK:
-    if (CLOCK_ALARM == clock.state) {
-      // Interrupt alarm
+  // Every 100ms -> update keys
+  if (0 == (clock.ticks % 10)) {
+    // Check keys:
+    key_update(0);
+    key_update(1);
+    key_update(2);
+    // Down key
+    if (KEY_CLICK == key(0)) {
       clock.state = CLOCK_WAIT;
-    }
-    // Switch off
-    clock.value = 0; pwm_set(clock.value);
-    break;
-  case KEY_HOLD:
-    if (CLOCK_ALARM == clock.state) {
-      // Interrupt alarm
+      clock.value = 0;
+    } else if (KEY_HOLD == key(0)) {
       clock.state = CLOCK_WAIT;
+      if (clock.value>=(1<<6)) {
+        clock.value -= (1<<6);
+      } else if (clock.value) {
+        clock.value = 0;
+      }
     }
-    // Decrease current value
-    if (clock.value) {
-      clock.value--;
+    // Upkey
+    if (KEY_CLICK == key(1)) {
+      clock.state = CLOCK_WAIT;
+      clock.value = 0xffff;
+    } else if (KEY_HOLD == key(1)) {
+      clock.state = CLOCK_WAIT;
+      if (clock.value<(0xffff-(1<<6))) {
+        clock.value += (1<<6);
+      } else if (clock.value < 0xffff) {
+        clock.value = 0xffff;
+      }
     }
-    pwm_set(clock.value);
-    break;
-  case KEY_NONE:
-    break;
   }
-
-  // Check up key
-  switch (gpio_update_key(1)) {
-  case KEY_KLICK:
-    // Interrupt alarm
-    if (CLOCK_ALARM == clock.state) { clock.state = CLOCK_WAIT; }
-    // Switch on
-    clock.value = 0xffff; pwm_set(clock.value);
-    break;
-  case KEY_HOLD:
-    // Interrupt alarm
-    if (CLOCK_ALARM == clock.state) { clock.state = CLOCK_WAIT; }
-    // increment current value
-    if (0xffff > clock.value) { clock.value++; }
-    pwm_set(clock.value);
-    break;
-  case KEY_NONE:
-    break;
-  } */
 
   sei();
   return;

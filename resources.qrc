@@ -1,4 +1,6 @@
 <RCC>
     <qresource prefix="/">
+        <file alias="quit.png">shared/power-standby.png</file>
+        <file alias="settings.png">shared/wrench.png</file>
     </qresource>
 </RCC>

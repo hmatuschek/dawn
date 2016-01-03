@@ -156,7 +156,7 @@ Dawn::value(bool *ok) {
 
 bool
 Dawn::setValue(uint16_t value) {
-  uint8_t tx[3] = {SET_VALUE, (value>>8), value};
+  uint8_t tx[3] = {SET_VALUE, value, value>>8};
   if (! _send(tx, 3)) {
     LogMessage msg(LOG_WARNING);
     msg << "Can not get value ("
