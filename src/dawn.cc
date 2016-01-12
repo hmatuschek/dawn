@@ -2,6 +2,7 @@
 
 #include <QStringList>
 #include <QTextStream>
+#include <QtEndian>
 
 #include <iostream>
 #include <inttypes.h>
@@ -180,7 +181,7 @@ Dawn::time(bool *ok) {
     return QDateTime();
   }
   if (ok) { *ok = true; }
-  return QDateTime(QDate( 2000 + rx[0], rx[1], rx[2]),
+  return QDateTime(QDate(2000 + rx[0], rx[1], rx[2]),
       QTime(rx[4], rx[5], rx[6]));
 }
 
@@ -207,11 +208,11 @@ Dawn::getTemp(double &core, double &amb) {
     Logger::get().log(msg);
     return false;
   }
-  core = *((uint16_t *)rx);
-  core = 25 + ((core*1.1)/0xffff - 0.314)*1000;
+  core = qFromBigEndian(*((uint16_t *)rx));
+  core = (core-425.)/1.3;
 
-  amb  = *((uint16_t *)(rx+2));
-
+  amb  = qFromBigEndian(*((uint16_t *)(rx+2)));
+  amb = (2-(1024./amb))/0.041 + 25;
   return true;
 }
 
@@ -261,10 +262,19 @@ Dawn::data(const QModelIndex &index, int role) const
       return alarm.time.toString("HH:mm");
     }
   } else if (Qt::EditRole == role) {
-    if (0 == index.column()) { return int(alarm.dowFlags); }
+    if (0 == index.column()) { return uint16_t(alarm.dowFlags); }
     if (1 == index.column()) { return alarm.time; }
   }
   return QVariant();
+}
+
+QVariant
+Dawn::headerData(int section, Qt::Orientation orientation, int role) const {
+  if (Qt::Horizontal != orientation) { return QVariant(); }
+  if (Qt::DisplayRole != role) { return QVariant(); }
+  if (0 == section) { return tr("Day of week"); }
+  else if (1 == section) { return tr("Time"); }
+  else { return QVariant(); }
 }
 
 bool

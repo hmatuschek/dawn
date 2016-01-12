@@ -1,5 +1,4 @@
 #include "dayofweekdelegate.hh"
-#include <QComboBox>
 #include "dawn.hh"
 
 DayOfWeekDelegate::DayOfWeekDelegate(QObject *parent) :
@@ -12,7 +11,7 @@ QWidget *
 DayOfWeekDelegate::createEditor(
     QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-  QComboBox *box = new QComboBox(parent);
+  /**QComboBox *box = new QComboBox(parent);
   box->addItem(tr("Every day"), 0x7f);
   box->addItem(tr("Monday"), Dawn::MONDAY);
   box->addItem(tr("Tuesday"), Dawn::TUESDAY);
@@ -21,22 +20,24 @@ DayOfWeekDelegate::createEditor(
   box->addItem(tr("Friday"), Dawn::FRIDAY);
   box->addItem(tr("Saturday"), Dawn::SATURDAY);
   box->addItem(tr("Sunday"), Dawn::SUNDAY);
-  return box;
+  return box; */
+  return new DayOfWeekWidget(0);
 }
 
 void
 DayOfWeekDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
-  int idx = index.model()->data(index, Qt::EditRole).toInt();
-  QComboBox *cBox = static_cast<QComboBox*>(editor);
-  cBox->setCurrentIndex(idx);
+  uint8_t dow = index.model()->data(index, Qt::EditRole).toUInt();
+  DayOfWeekWidget *cBox = static_cast<DayOfWeekWidget*>(editor);
+  cBox->setDayOfWeek(dow);
 }
 
 void
 DayOfWeekDelegate::setModelData(
     QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
-  model->setData(index, static_cast<QComboBox*>(editor)->currentIndex(), Qt::EditRole);
+  DayOfWeekWidget *cb = static_cast<DayOfWeekWidget *>(editor);
+  model->setData(index, cb->dayOfWeek(), Qt::EditRole);
 }
 
 void

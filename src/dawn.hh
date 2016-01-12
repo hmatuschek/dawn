@@ -24,7 +24,7 @@ public:
     WEDNESDAY = 0b0001000,
     THURSDAY  = 0b0010000,
     FRIDAY    = 0b0100000,
-    SATURDAY  = 0b1000000
+    SATURDAY  = 0b1000000,
   } DayOfWeek;
 
   /** Represents an alarm configuration. */
@@ -70,6 +70,7 @@ public:
   int rowCount(const QModelIndex &parent) const;
   int columnCount(const QModelIndex &parent) const;
   QVariant data(const QModelIndex &index, int role) const;
+  QVariant headerData(int section, Qt::Orientation orientation, int role) const;
   Qt::ItemFlags flags(const QModelIndex &index) const;
   bool setData(const QModelIndex &index, const QVariant &value, int role);
 

@@ -28,10 +28,11 @@ MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
   QAction *quit = toolbar->addAction(QIcon(":/quit.png"), tr("Quit"));
 
   QTableView *table = new QTableView();
-  //table->horizontalHeader()->hide();
   table->verticalHeader()->hide();
   table->setModel(&_dawn);
   table->setItemDelegateForColumn(0, new DayOfWeekDelegate());
+  table->setColumnWidth(0, 200);
+  table->setColumnWidth(1, 100);
   this->setCentralWidget(table);
 
   QObject::connect(quit, SIGNAL(triggered()), this, SLOT(close()));

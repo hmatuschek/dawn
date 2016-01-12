@@ -2,6 +2,7 @@
 #define DAYOFWEEKDELEGATE_HH
 
 #include <QItemDelegate>
+#include "dayofweekwidget.hh"
 
 /** A QListView Delegate to display a drop-down selection for the day-of-week selection. */
 class DayOfWeekDelegate : public QItemDelegate

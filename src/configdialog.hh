@@ -28,6 +28,8 @@ protected:
   QDateTimeEdit *_dtEdit;
   QLabel *_coreTemp;
   QLabel *_ambTemp;
+  double _coreAvg;
+  double _ambAvg;
   QTimer _timer;
 };
 

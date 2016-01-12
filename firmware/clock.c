@@ -13,8 +13,8 @@
 #include "dawnfunction.h"
 #include "gpio.h"
 
-// Specifies the maximum duration of the alarm (2h)
-#define CLOCK_ALARM_MAX_SEC 7200
+// Specifies the maximum duration of the alarm (3h)
+#define CLOCK_ALARM_MAX_SEC 10800UL
 
 typedef enum {
   CLOCK_WAIT,
@@ -95,7 +95,7 @@ clock_init() {
 uint8_t alarm_match() {
   for (int i=0; i<CLOCK_N_ALARM; i++) {
     // check if day of week matches
-    if (0 == (clock.alarm[i].select>>clock.datetime.dayOfWeek)) { continue; }
+    if (0 == (clock.alarm[i].select & (1<<clock.datetime.dayOfWeek))) { continue; }
     if (clock.alarm[i].hour != clock.datetime.hour) { continue; }
     if (clock.alarm[i].minute != clock.datetime.minute) { continue; }
     if (1 < clock.datetime.second) { continue; }
@@ -110,6 +110,7 @@ uint16_t clock_get_value() {
 }
 
 void clock_set_value(uint16_t value) {
+  clock.state = CLOCK_WAIT;
   clock.value = value;
   pwm_set(clock.value);
 }
@@ -131,7 +132,7 @@ uint8_t clock_set_alarm(uint8_t idx, Alarm *alarm) {
   if (idx >= CLOCK_N_ALARM) { return 0; }
   memcpy((Alarm *) &clock.alarm[idx], alarm, sizeof(clock.alarm));
   // store alarm config into EEPROM
-  eeprom_write_block((Alarm *)clock.alarm, storedAlarm, 7*sizeof(Alarm));
+  eeprom_update_block((Alarm *)clock.alarm, storedAlarm, CLOCK_N_ALARM*sizeof(Alarm));
   return 1;
 }
 
@@ -190,33 +191,38 @@ ISR(TIMER0_COMPA_vect) {
     key_update(0);
     key_update(1);
     key_update(2);
+
     // Down key
     if (KEY_CLICK == key(0)) {
       clock.state = CLOCK_WAIT;
       clock.value = 0;
+      pwm_set(clock.value);
     } else if (KEY_HOLD == key(0)) {
       clock.state = CLOCK_WAIT;
-      if (clock.value>=(1<<6)) {
-        clock.value -= (1<<6);
+      if (clock.value>=(1<<10)) {
+        clock.value -= (1<<10);
       } else if (clock.value) {
         clock.value = 0;
       }
+      pwm_set(clock.value);
     }
+
     // Upkey
-    if (KEY_CLICK == key(1)) {
+    else if (KEY_CLICK == key(1)) {
       clock.state = CLOCK_WAIT;
       clock.value = 0xffff;
+      pwm_set(clock.value);
     } else if (KEY_HOLD == key(1)) {
       clock.state = CLOCK_WAIT;
-      if (clock.value<(0xffff-(1<<6))) {
-        clock.value += (1<<6);
+      if (clock.value<(0xffff-(1<<10))) {
+        clock.value += (1<<10);
       } else if (clock.value < 0xffff) {
         clock.value = 0xffff;
       }
+      pwm_set(clock.value);
     }
   }
 
   sei();
-  return;
 }
 

@@ -66,6 +66,7 @@ uart_read(uint8_t *buffer, uint8_t len) {
 
 ISR(USART_RX_vect)
 {
+  cli();
   uint8_t c = UDR0;
   uint8_t new_head = ((uart_rx_head + 1) & UART_BUFFER_MASK);
   // check for overflow
@@ -73,4 +74,5 @@ ISR(USART_RX_vect)
   // Get & store byte
   uart_rx_buffer[uart_rx_head] = c;
   uart_rx_head = new_head;
+  sei();
 }

@@ -10,6 +10,8 @@
 /** Alarm selection. */
 typedef struct {
   uint8_t select;  ///< Specifies the days of the week at which the alarm is active.
+                   ///< Sat: b6, Fri: b5, Thr: b4, Wen: b3, Tue: b2, Mon: b1, Sun: b0
+                   ///< => 0x00: None, 0x7f: All days
   uint8_t hour;    ///< Specifies the hour of the alarm.
   uint8_t minute;  ///< Specifies the minute of the alarm.
 } Alarm;
