@@ -27,7 +27,7 @@ typedef struct {
   uint16_t   ticks;
   uint16_t   alarmSeconds;
   DateTime   datetime;
-  Alarm      alarm[CLOCK_N_ALARM];
+  uint8_t    update_datetime;
 } Clock;
 
 // The singleton clock instance
@@ -36,6 +36,9 @@ volatile static Clock clock;
 // Persistent storage of alarm settings
 Alarm storedAlarm[CLOCK_N_ALARM] EEMEM = {
   {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0} };
+
+// Memory representation of alarm settings
+static Alarm alarm_settings[CLOCK_N_ALARM];
 
 
 // interpolation function for the dawn function table
@@ -48,6 +51,13 @@ uint16_t clock_map_dawn_func(uint16_t value) {
   return x;
 }
 
+void update_datetime() {
+  // get current time
+  ds1307_getdate((uint8_t *) &clock.datetime.year, (uint8_t *) &clock.datetime.month, (uint8_t *) &clock.datetime.day,
+                 (uint8_t *) &clock.datetime.hour, (uint8_t *) &clock.datetime.minute, (uint8_t *) &clock.datetime.second);
+  clock.datetime.dayOfWeek =
+      ds1307_getdayofweek(clock.datetime.year, clock.datetime.month, clock.datetime.day);
+}
 
 void
 clock_init() {
@@ -66,14 +76,11 @@ clock_init() {
   // init RTC
   ds1307_init();
 
-  // get current time
-  ds1307_getdate((uint8_t *) &clock.datetime.year, (uint8_t *) &clock.datetime.month, (uint8_t *) &clock.datetime.day,
-                 (uint8_t *) &clock.datetime.hour, (uint8_t *) &clock.datetime.minute, (uint8_t *) &clock.datetime.second);
-  clock.datetime.dayOfWeek =
-      ds1307_getdayofweek(clock.datetime.year, clock.datetime.month, clock.datetime.day);
+  // update current time
+  update_datetime();
 
   // Read alarm settings from EEPROM
-  eeprom_read_block((Alarm *)clock.alarm, storedAlarm, CLOCK_N_ALARM*sizeof(Alarm));
+  eeprom_read_block(alarm_settings, storedAlarm, CLOCK_N_ALARM*sizeof(Alarm));
 
   // Configure timer0 to trigger interrupt about every 10ms
   TCCR0A =
@@ -95,9 +102,9 @@ clock_init() {
 uint8_t alarm_match() {
   for (int i=0; i<CLOCK_N_ALARM; i++) {
     // check if day of week matches
-    if (0 == (clock.alarm[i].select & (1<<clock.datetime.dayOfWeek))) { continue; }
-    if (clock.alarm[i].hour != clock.datetime.hour) { continue; }
-    if (clock.alarm[i].minute != clock.datetime.minute) { continue; }
+    if (0 == (alarm_settings[i].select & (1<<clock.datetime.dayOfWeek))) { continue; }
+    if (alarm_settings[i].hour != clock.datetime.hour) { continue; }
+    if (alarm_settings[i].minute != clock.datetime.minute) { continue; }
     if (1 < clock.datetime.second) { continue; }
     return 1;
   }
@@ -124,15 +131,16 @@ uint8_t clock_set_datetime(DateTime *datetime) {
   if(! ds1307_setdate(datetime->year, datetime->month, datetime->day,
                       datetime->hour, datetime->minute, datetime->second)) { return 0; }
   // On success update local date-time struct
-  memcpy((DateTime *) &clock.datetime, datetime, sizeof(clock.datetime));
+  memcpy((DateTime *) &clock.datetime, datetime, sizeof(DateTime));
   return 1;
 }
 
 uint8_t clock_set_alarm(uint8_t idx, Alarm *alarm) {
   if (idx >= CLOCK_N_ALARM) { return 0; }
-  memcpy((Alarm *) &clock.alarm[idx], alarm, sizeof(clock.alarm));
+  // Update memory
+  memcpy(&alarm_settings[idx], alarm, sizeof(Alarm));
   // store alarm config into EEPROM
-  eeprom_update_block((Alarm *)clock.alarm, storedAlarm, CLOCK_N_ALARM*sizeof(Alarm));
+  eeprom_update_block(alarm_settings, storedAlarm, CLOCK_N_ALARM*sizeof(Alarm));
   return 1;
 }
 
@@ -141,7 +149,7 @@ void clock_get_alarm(uint8_t idx, Alarm *alarm) {
     alarm->select = alarm->hour = alarm->minute = 0;
     return;
   } else {
-    memcpy(alarm, (Alarm *) &clock.alarm[idx], sizeof(Alarm));
+    memcpy(alarm, &alarm_settings[idx], sizeof(Alarm));
   }
 }
 
@@ -154,12 +162,11 @@ ISR(TIMER0_COMPA_vect) {
 
   // Every second
   if (clock.ticks == 100) {
+    // reset tick counter
     clock.ticks = 0;
+
     // Update date and time
-    ds1307_getdate((uint8_t *) &(clock.datetime.year), (uint8_t *) &(clock.datetime.month), (uint8_t *) &(clock.datetime.day),
-                   (uint8_t *) &(clock.datetime.hour), (uint8_t *) &(clock.datetime.minute), (uint8_t *) &(clock.datetime.second));
-    clock.datetime.dayOfWeek =
-        ds1307_getdayofweek(clock.datetime.year, clock.datetime.month, clock.datetime.day);
+    update_datetime();
 
     // If alarm -> update alarm seconds counter
     if (CLOCK_ALARM == clock.state) {
