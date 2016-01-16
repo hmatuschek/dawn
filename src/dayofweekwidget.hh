@@ -2,6 +2,7 @@
 #define DAYOFWEEKWIDGET_HH
 
 #include <QListWidget>
+#include <inttypes.h>
 
 class DayOfWeekWidget : public QListWidget
 {

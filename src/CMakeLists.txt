@@ -1,6 +1,6 @@
-set(dawn_SOURCES main.cc portdialog.cc dawn.cc dayofweekdelegate.cc timedelegate.cc
+set(dawn_SOURCES main.cc portdialog.cc dawn.cc timedelegate.cc
     mainwindow.cc configdialog.cc siphash24.c logger.cc dayofweekwidget.cc alarmsettingwidget.cc)
-set(dawn_MOC_HEADERS portdialog.hh dawn.hh dayofweekdelegate.hh timedelegate.hh
+set(dawn_MOC_HEADERS portdialog.hh dawn.hh timedelegate.hh
     mainwindow.hh configdialog.hh dayofweekwidget.hh alarmsettingwidget.hh)
 qt5_wrap_cpp(dawn_MOC_SOURCES ${dawn_MOC_HEADERS})
 
