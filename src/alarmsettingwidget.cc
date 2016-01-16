@@ -44,7 +44,7 @@ if (0b1111111 == alarm.dowFlags) { days.clear(); days << tr("Every day"); }
     setText(tr("%0 at %1").arg(days.first(), alarm.time.toString("HH:mm")));
   } else if (days.size()){
     setText(tr("%0 and %1 at %2").arg(
-              days.mid(0, days.size()-1).join(", "), days.last(), alarm.time.toString("HH:mm")));
+              QStringList(days.mid(0, days.size()-1)).join(", "), days.last(), alarm.time.toString("HH:mm")));
   } else {
     setText(tr("Disabled"));
   }
