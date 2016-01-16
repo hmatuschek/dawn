@@ -217,7 +217,7 @@
     <message>
         <location filename="../src/portdialog.cc" line="58"/>
         <source>Select a device:</source>
-        <translation type="unfinished"></translation>
+        <translation>Gerät wählen:</translation>
     </message>
 </context>
 <context>
@@ -248,22 +248,22 @@
     <message>
         <location filename="../src/portdialog.cc" line="14"/>
         <source>Device name</source>
-        <translation type="unfinished"></translation>
+        <translation>Gerätename</translation>
     </message>
     <message>
         <location filename="../src/portdialog.cc" line="29"/>
         <source>Name</source>
-        <translation type="unfinished"></translation>
+        <translation>Name</translation>
     </message>
     <message>
         <location filename="../src/portdialog.cc" line="30"/>
         <source>Interface</source>
-        <translation type="unfinished"></translation>
+        <translation>Schnittstelle</translation>
     </message>
     <message>
         <location filename="../src/portdialog.cc" line="31"/>
         <source>Secret</source>
-        <translation type="unfinished"></translation>
+        <translation>Schlüssel</translation>
     </message>
 </context>
 <context>
@@ -283,7 +283,7 @@
     <message>
         <location filename="../src/main.cc" line="51"/>
         <source>Can not access device at interface %1 (%2) using secret %3</source>
-        <translation type="unfinished"></translation>
+        <translation>Auf das Gerät kann nicht über die Schnittstelle %1 (%2) mit dem Schlüssel %3 zugegriffen werden</translation>
     </message>
     <message>
         <source>Can not access device at interface %1 (%2)</source>

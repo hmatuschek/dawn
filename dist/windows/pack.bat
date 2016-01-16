@@ -5,7 +5,7 @@ SET LIB_PATH=C:/MinGW/bin
 SET NSIS_PATH=C:/Program Files (x86)/NSIS
 SET PATH=%NSIS_PATH%;%PAHT%
 
-COPY "src/kochmorse.exe" .
+COPY "src/dawn.exe" .
 COPY "%QT_BIN_PATH%/Qt5Core.dll" .
 COPY "%QT_BIN_PATH%/Qt5Gui.dll" .
 COPY "%QT_BIN_PATH%/Qt5Widgets.dll" .
