@@ -21,7 +21,6 @@ ENDIF(LANGUAGE_TS_FILES)
 
 qt5_add_resources(dawn_RCC_SOURCES ../resources.qrc)
 
-set_property(SOURCE main.cc APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_BINARY_DIR}/secret.h)
 add_executable(dawn ${dawn_SOURCES} ${dawn_MOC_SOURCES} ${dawn_RCC_SOURCES} ${dawn_QM_FILES})
 target_link_libraries(dawn ${LIBS})
 
