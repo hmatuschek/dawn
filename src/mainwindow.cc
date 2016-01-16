@@ -14,6 +14,7 @@ MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
 {
   setMinimumSize(460, 320);
   setWindowTitle(tr("Dawn control"));
+  setWindowIcon(QIcon("://icon.png"));
 
   QToolBar *toolbar = this->addToolBar(tr("Toolbar"));
 

@@ -220,17 +220,17 @@
         <translation>Dawn Verwaltung</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cc" line="18"/>
+        <location filename="../src/mainwindow.cc" line="19"/>
         <source>Toolbar</source>
         <translation>Toolbar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cc" line="20"/>
+        <location filename="../src/mainwindow.cc" line="21"/>
         <source>Config</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cc" line="28"/>
+        <location filename="../src/mainwindow.cc" line="29"/>
         <source>Quit</source>
         <translation>Beenden</translation>
     </message>

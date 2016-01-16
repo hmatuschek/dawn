@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.8)
 project(dawn)
 
+option(ENABLE_FIRMWARE "Enable firmware build." OFF)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 include(InstallHeadersWithDirectory)
 
@@ -8,7 +10,9 @@ find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5SerialPort REQUIRED)
 find_package(Qt5LinguistTools REQUIRED)
-find_package(PythonInterp REQUIRED)
+if(ENABLE_FIRMWARE)
+ find_package(PythonInterp REQUIRED)
+endif(ENABLE_FIRMWARE)
 
 ADD_DEFINITIONS(${Qt5Widgets_DEFINITIONS})
 INCLUDE_DIRECTORIES(${Qt5Core_INCLUDE_DIRS})
@@ -30,7 +34,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ggdb")
 # application sources...
 add_subdirectory(src)
 # firmware sources
-add_subdirectory(firmware)
+if(ENABLE_FIRMWARE)
+ add_subdirectory(firmware)
+endif(ENABLE_FIRMWARE)
 
 # Source distribution packages:
 set(CPACK_PACKAGE_VERSION_MAJOR "0")
