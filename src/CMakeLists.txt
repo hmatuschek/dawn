@@ -21,21 +21,6 @@ ENDIF(LANGUAGE_TS_FILES)
 
 qt5_add_resources(dawn_RCC_SOURCES ../resources.qrc)
 
-if(NOT DEFINED SECRET)
-  message(STATUS "No shared secret specified (via -DSECRET=...).")
-  exec_program(${PYTHON_EXECUTABLE}
-               ARGS ${CMAKE_SOURCE_DIR}/gen_secret.py
-               OUTPUT_VARIABLE SECRET)
-  message(STATUS "Using generated shared secret: ${SECRET}")
-else(NOT DEFINED SECRET)
-  message(STATUS "Using user supplied shared secret: ${SECRET}")
-endif(NOT DEFINED SECRET)
-
-add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/secret.h
-  COMMAND ${PYTHON_EXECUTABLE}
-  ARGS ${CMAKE_SOURCE_DIR}/gen_secret.py ${SECRET} ${CMAKE_BINARY_DIR}/secret.h
-  DEPENDS ${CMAKE_SOURCE_DIR}/gen_secret.py)
-
 set_property(SOURCE main.cc APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_BINARY_DIR}/secret.h)
 add_executable(dawn ${dawn_SOURCES} ${dawn_MOC_SOURCES} ${dawn_RCC_SOURCES} ${dawn_QM_FILES})
 target_link_libraries(dawn ${LIBS})

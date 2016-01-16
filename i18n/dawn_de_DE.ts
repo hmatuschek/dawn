@@ -213,6 +213,14 @@
     </message>
 </context>
 <context>
+    <name>DeviceDialog</name>
+    <message>
+        <location filename="../src/portdialog.cc" line="58"/>
+        <source>Select a device:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <location filename="../src/mainwindow.cc" line="16"/>
@@ -236,24 +244,50 @@
     </message>
 </context>
 <context>
+    <name>NewDeviceDialog</name>
+    <message>
+        <location filename="../src/portdialog.cc" line="14"/>
+        <source>Device name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/portdialog.cc" line="29"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/portdialog.cc" line="30"/>
+        <source>Interface</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/portdialog.cc" line="31"/>
+        <source>Secret</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>PortDialog</name>
     <message>
-        <location filename="../src/portdialog.cc" line="18"/>
         <source>Select an interface:</source>
-        <translation>Geräteschnittstelle:</translation>
+        <translation type="vanished">Geräteschnittstelle:</translation>
     </message>
 </context>
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cc" line="43"/>
+        <location filename="../src/main.cc" line="50"/>
         <source>Can not access device.</source>
         <translation>Gerätezugriffsfehler.</translation>
     </message>
     <message>
-        <location filename="../src/main.cc" line="44"/>
+        <location filename="../src/main.cc" line="51"/>
+        <source>Can not access device at interface %1 (%2) using secret %3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Can not access device at interface %1 (%2)</source>
-        <translation>Auf das Gerät kann nicht über die Schnittstelle %1 (%2) zugegriffen werden</translation>
+        <translation type="vanished">Auf das Gerät kann nicht über die Schnittstelle %1 (%2) zugegriffen werden</translation>
     </message>
 </context>
 </TS>

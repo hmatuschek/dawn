@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QDateTime>
 #include <QTranslator>
+#include <QSettings>
 
 #include "portdialog.hh"
 #include "dawn.hh"
@@ -12,11 +13,12 @@
 #include <iostream>
 #include <time.h>
 
-#include "secret.h"
-
 int main(int argc, char *argv[])
 {
   QApplication app(argc, argv);
+  app.setApplicationName("dawn");
+  app.setOrganizationDomain("hmatuschek.github.io");
+
   QTranslator translator;
   translator.load("://i18n/dawn.qm");
   app.installTranslator(&translator);
@@ -25,24 +27,29 @@ int main(int argc, char *argv[])
   Logger::get().addHandler(
         new StreamLogHandler(LOG_DEBUG, std::cerr));
 
+  QSettings settings("hmatuschek.github.io", "dawn");
+
   Dawn *dawn = 0;
   QString name, systemLocation;
+  QByteArray secret;
   // Let the user select an interfact to the device:
   while (true) {
-    PortDialog dialog;
+    DeviceDialog dialog(settings);
     if (QDialog::Accepted != dialog.exec()) { return 0; }
 
     name = dialog.name();
     systemLocation = dialog.systemLocation();
-    dawn = new Dawn(systemLocation, secret);
+    secret = dialog.secret();
+    if (16 != secret.size()) { secret.resize(16); }
+    dawn = new Dawn(systemLocation, (const uint8_t *)secret.constData());
 
     if (dawn->isValid()) {
       break;
     } else {
       QMessageBox::critical(
             0, QObject::tr("Can not access device."),
-            QObject::tr("Can not access device at interface %1 (%2)").arg(
-              name, systemLocation));
+            QObject::tr("Can not access device at interface %1 (%2) using secret %3").arg(
+              name, systemLocation, QString(secret.toHex())));
       delete dawn;
     }
   }
