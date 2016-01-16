@@ -131,7 +131,24 @@ unsigned const char v3_init[] PROGMEM = {0x74, 0x65, 0x64, 0x62, 0x79, 0x74, 0x6
 
 
 void
-siphash_cbc_mac_progmem(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret) {
+siphash_cbc_mac_progmem(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *nonce, const uint8_t *secret) {
+  siphash_init_from_progmem(secret);
+  for (uint8_t i=0; i<len; i++) { siphash_update(data[i]); }
+  for (uint8_t i=0; i<8; i++) { siphash_update(nonce[i]); }
+  siphash_finish();
+  siphash_get(hash);
+}
+
+void siphach_cbc_update_nonce_progmem(uint8_t *nonce, const uint8_t *hash, const uint8_t *secret) {
+  siphash_init_from_progmem(secret);
+  for (uint8_t i=0; i<8; i++) { siphash_update(nonce[i]); }
+  for (uint8_t i=0; i<8; i++) { siphash_update(hash[i]); }
+  siphash_finish();
+  siphash_get(nonce);
+}
+
+void
+siphash_mac_progmem(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret) {
   siphash_init_from_progmem(secret);
   for (uint8_t i=0; i<len; i++) { siphash_update(data[i]); }
   siphash_finish();
@@ -139,7 +156,7 @@ siphash_cbc_mac_progmem(uint8_t *hash, const uint8_t *data, uint8_t len, const u
 }
 
 void
-siphash_cbc_mac(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret) {
+siphash_mac(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret) {
   siphash_init(secret);
   for (uint8_t i=0; i<len; i++) { siphash_update(data[i]); }
   siphash_finish();

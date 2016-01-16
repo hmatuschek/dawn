@@ -6,15 +6,15 @@
 
 /** Specifies the possible commands. */
 typedef enum {
-  CMD_MIN   = 0x00,
-  GET_VALUE = 0x01,
-  SET_VALUE = 0x02,
-  GET_TIME  = 0x03,
-  SET_TIME  = 0x04,
-  GET_ALARM = 0x05,
-  SET_ALARM = 0x06,
-  GET_TEMP  = 0x07,
-  CMD_MAX   = 0x08
+  GET_VALUE  = 0x01,
+  SET_VALUE  = 0x02,
+  GET_TIME   = 0x03,
+  SET_TIME   = 0x04,
+  GET_ALARM  = 0x05,
+  SET_ALARM  = 0x06,
+  GET_TEMP   = 0x07,
+  GET_NALARM = 0x08,
+  GET_NONCE  = 0x09,
 } CommandFlag;
 
 
@@ -28,9 +28,9 @@ typedef struct {
     uint16_t value;
     /// For SET_TIME the date & time.
     DateTime datetime;
-    /// For GET_ALARM, the alarm index.
+    /// For GET_ALARM the alarm index.
     uint8_t alarmIdx;
-    /// For set alarm, the index and alarm settings.
+    /// For SET_ALARM, the index and alarm settings.
     struct {
       uint8_t alarmIdx;
       Alarm   alarm;
@@ -59,5 +59,9 @@ void comm_send_time(DateTime *datetime);
 void comm_send_alarm(Alarm *alarm);
 // Sends (blocking) the core and ambient temperatures.
 void comm_send_temp(uint16_t core, uint16_t ambient);
+// Sends (blocking) the number of alarm settings
+void comm_send_nalarm(uint8_t nalarm);
+// Sends (blocking) the current nonce.
+void comm_send_nonce();
 
 #endif // __DAWN_COMMUNICACTION_H__

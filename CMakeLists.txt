@@ -4,11 +4,10 @@ project(dawn)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 include(InstallHeadersWithDirectory)
 
-option(SECRET "Specifies the shared secret (128bit/16byte random in hex)." OFF)
-
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5SerialPort REQUIRED)
+find_package(Qt5LinguistTools REQUIRED)
 find_package(PythonInterp REQUIRED)
 
 ADD_DEFINITIONS(${Qt5Widgets_DEFINITIONS})

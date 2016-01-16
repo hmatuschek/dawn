@@ -24,10 +24,14 @@ int main(void)
   // Wait for commands
   Command cmd;
   while (1) {
-    if(comm_wait(&cmd)) {
-      // Dispatch by command
-      switch (cmd.command)
-      {
+    if (! comm_wait(&cmd)) {
+      comm_send_err();
+      continue;
+    }
+
+    // Dispatch by command
+    switch (cmd.command)
+    {
       case GET_VALUE:
         comm_send_value(clock_get_value());
         break;
@@ -67,12 +71,17 @@ int main(void)
         comm_send_temp(temp_get_core(), temp_get_external());
         break;
 
+      case GET_NALARM:
+        comm_send_nalarm(CLOCK_N_ALARM);
+        break;
+
+      case GET_NONCE:
+        comm_send_nonce();
+        break;
+
       default:
         comm_send_err();
         break;
-      }
-    } else {
-      comm_send_err();
     }
   }
 

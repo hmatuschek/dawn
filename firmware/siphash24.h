@@ -33,8 +33,11 @@
 
 extern void reverse64(uint8_t *x);
 
-extern void siphash_cbc_mac_progmem(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret);
-extern void siphash_cbc_mac(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret);
+extern void siphash_cbc_mac_progmem(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *nonce, const uint8_t *secret);
+extern void siphach_cbc_update_nonce_progmem(uint8_t *nonce, const uint8_t *hash, const uint8_t *secret);
+
+extern void siphash_mac_progmem(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret);
+extern void siphash_mac(uint8_t *hash, const uint8_t *data, uint8_t len, const uint8_t *secret);
 
 extern void siphash_init_from_progmem(const uint8_t *keyPrgPtrIn);
 extern void siphash_init(const uint8_t *key);

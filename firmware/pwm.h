@@ -6,4 +6,4 @@
 void pwm_init();
 void pwm_set(uint16_t value);
 
-#endif // __LAMPE_PWM_H__
+#endif // __DAWN_PWM_H__

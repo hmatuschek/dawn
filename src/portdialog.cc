@@ -15,7 +15,8 @@ PortDialog::PortDialog(QWidget *parent) :
     _ports->addItem(info.portName(), info.systemLocation());
   }
 
-  QLabel *label = new QLabel(tr("Select interface:"));
+  QLabel *label = new QLabel(tr("Select an interface:"));
+  label->setStyleSheet("QLabel { font-size: 18pt; }");
 
   QDialogButtonBox *buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel);

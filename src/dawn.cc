@@ -11,6 +11,11 @@
 #include "siphash24.h"
 #include "logger.hh"
 
+#define R25  1e3
+#define a25  -0.041
+#define Rr   1e2
+
+
 typedef enum {
   GET_VALUE    = 0x01,
   SET_VALUE    = 0x02,
@@ -18,12 +23,14 @@ typedef enum {
   SET_TIME     = 0x04,
   GET_ALARM    = 0x05,
   SET_ALARM    = 0x06,
-  GET_TEMP     = 0x07
+  GET_TEMP     = 0x07,
+  GET_NALARM   = 0x08,
+  GET_NONCE    = 0x09
 } Commands;
 
 
 Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent)
-  : QAbstractTableModel(parent), _port(portname), _valid(false)
+  : QObject(parent), _port(portname), _valid(false)
 {
   // Store shared secret
   memcpy(_secret, secret, 16);
@@ -68,10 +75,19 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
     return;
   }
 
-  // First, get current value
-  value(&_valid);
+  // First, get nonce
+  if (!readNonce()) {
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not read nonce from device.";
+    Logger::get().log(msg);
+    return;
+  }
 
-  _alarms.resize(7);
+  // get number of alarm settings
+  size_t nAlarm = readNumAlarms(&_valid);
+  if (! _valid) { return; }
+
+  _alarms.resize(nAlarm);
   for (size_t i=0; i<7; i++) {
     bool ok = true;
     for (int j=0; j<5; j++) {
@@ -92,6 +108,20 @@ Dawn::numAlarms() const {
   return _alarms.size();
 }
 
+size_t
+Dawn::readNumAlarms(bool *ok) {
+  // Get number of alarm settings
+  uint8_t tx_buffer[1] = { GET_NALARM }, rx_buffer[1];
+  if (! _send(tx_buffer, 1, rx_buffer, 1)) {
+    LogMessage msg(LOG_ERROR);
+    msg << "Can not get number of alarm settings: Command failed.";
+    Logger::get().log(msg);
+    if (ok) { *ok = false; }
+    return 0;
+  }
+  if(ok) { *ok = true; }
+  return rx_buffer[0];
+}
 
 const Dawn::Alarm &
 Dawn::alarm(size_t idx) const {
@@ -209,97 +239,25 @@ Dawn::getTemp(double &core, double &amb) {
     return false;
   }
   core = qFromBigEndian(*((uint16_t *)rx));
-  core = (core-425.)/1.3;
+  core = (core-430.)/0.9;
 
   amb  = qFromBigEndian(*((uint16_t *)(rx+2)));
-  amb = (2-(1024./amb))/0.041 + 25;
+  amb = Rr*(1024/amb - 1)/(R25*a25) + 25;
   return true;
 }
 
-int
-Dawn::rowCount(const QModelIndex &parent) const {
-  return numAlarms();
-}
-
-int
-Dawn::columnCount(const QModelIndex &parent) const {
-  return 2;
-}
-
-Qt::ItemFlags
-Dawn::flags(const QModelIndex &index) const {
-  if (0 == index.column()) { return Qt::ItemIsEnabled | Qt::ItemIsEditable; }
-  if (1 == index.column()) { return Qt::ItemIsEnabled | Qt::ItemIsEditable; }
-  return Qt::ItemFlags();
-}
-
-QVariant
-Dawn::data(const QModelIndex &index, int role) const
-{
-  if (index.row() >= int(numAlarms())) { QVariant(); }
-  // Get alarm config
-  Alarm alarm = this->alarm(index.row());
-  // Dispatch
-  if (Qt::DisplayRole == role) {
-    if (0 == index.column()) {
-      QStringList repr;
-      if (0b0000000 == alarm.dowFlags) { repr << tr("Never"); }
-      else if (0b1111111 == alarm.dowFlags) { repr.clear(); repr << tr("Every day"); }
-      else if (0b1000001 == alarm.dowFlags) { repr.clear(); repr << tr("Weekend"); }
-      else if (0b0111110 == alarm.dowFlags) { repr.clear(); repr << tr("Work day"); }
-      else {
-        if (Dawn::MONDAY == (alarm.dowFlags & Dawn::MONDAY)) { repr << tr("Monday"); }
-        if (Dawn::TUESDAY == (alarm.dowFlags & Dawn::TUESDAY)) { repr << tr("Tuesday"); }
-        if (Dawn::WEDNESDAY == (alarm.dowFlags & Dawn::WEDNESDAY)) { repr << tr("Wednesday"); }
-        if (Dawn::THURSDAY == (alarm.dowFlags & Dawn::THURSDAY)) { repr << tr("Thursday"); }
-        if (Dawn::FRIDAY == (alarm.dowFlags & Dawn::FRIDAY)) { repr << tr("Friday"); }
-        if (Dawn::SATURDAY == (alarm.dowFlags & Dawn::SATURDAY)) { repr << tr("Saturday"); }
-        if (Dawn::SUNDAY == (alarm.dowFlags & Dawn::SUNDAY)) { repr << tr("Sunday"); }
-      }
-      return repr.join(", ");
-    }
-    if (1 == index.column()) {
-      return alarm.time.toString("HH:mm");
-    }
-  } else if (Qt::EditRole == role) {
-    if (0 == index.column()) { return uint16_t(alarm.dowFlags); }
-    if (1 == index.column()) { return alarm.time; }
-  }
-  return QVariant();
-}
-
-QVariant
-Dawn::headerData(int section, Qt::Orientation orientation, int role) const {
-  if (Qt::Horizontal != orientation) { return QVariant(); }
-  if (Qt::DisplayRole != role) { return QVariant(); }
-  if (0 == section) { return tr("Day of week"); }
-  else if (1 == section) { return tr("Time"); }
-  else { return QVariant(); }
-}
-
 bool
-Dawn::setData(const QModelIndex &index, const QVariant &value, int role) {
-  if (index.column() > 1) { return false; }
-  if (index.row() >= int(numAlarms())) { return false; }
-  // Get current config
-  Alarm alarm = this->alarm(index.row());
-  // Update config
-  if (Qt::EditRole == role) {
-    if (0 == index.column()) { alarm.dowFlags = uint8_t(value.toUInt()); }
-    else if (1 == index.column()) { alarm.time = value.toTime(); }
-  } else {
+Dawn::readNonce() {
+  // Get nonce from device
+  uint8_t tx_buffer[1] = { GET_NONCE }, rx_buffer[8];
+  if (! _send(tx_buffer, 1, rx_buffer, 8)) {
+    LogMessage msg(LOG_ERROR);
+    msg << "Can not get nonce: Command failed.";
+    Logger::get().log(msg);
     return false;
   }
-  // Write to device
-  bool success = setAlarm(index.row(), alarm);
-  if (success) {
-    emit dataChanged(index, index);
-  } else {
-    LogMessage msg(LOG_WARNING);
-    msg << "Could not set alarm.";
-    Logger::get().log(msg);
-  }
-  return success;
+  memcpy(_nonce, rx_buffer, 8);
+  return true;
 }
 
 bool
@@ -357,7 +315,7 @@ Dawn::_sign(uint8_t *buffer, size_t len) {
 void
 Dawn::_sign(uint8_t *buffer, size_t len, uint8_t *sig) {
   for (size_t i=0; i<8; i++) { sig[0] = 0; }
-  siphash24_cbc_mac(sig, buffer, len, _secret);
+  siphash24_cbc_mac(sig, buffer, len, _nonce, _secret);
 }
 
 bool
@@ -396,6 +354,7 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
     msg << "send(): Can not read response-code.";
     return false;
   }
+
   // check response code
   if (resp_code) {
     LogMessage msg(LOG_WARNING);
@@ -429,6 +388,8 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
     Logger::get().log(msg);
   }
 
+  // Update nonce
+  siphash24_cbc_update_nonce(_nonce, tx_buffer+cmd_len, _secret);
   return true;
 }
 
@@ -436,5 +397,6 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
 bool
 Dawn::_recover() {
   LogMessage msg(LOG_INFO); msg << "IO: Recover."; Logger::get().log(msg);
+  readNonce();
   return true;
 }

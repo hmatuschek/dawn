@@ -1,7 +1,7 @@
 #ifndef DAWN_HH
 #define DAWN_HH
 
-#include <QAbstractListModel>
+#include <QObject>
 #include <QSerialPort>
 #include <QVector>
 #include <QTime>
@@ -11,7 +11,7 @@
 
 
 /** Proxy to the hardware. */
-class Dawn : public QAbstractTableModel
+class Dawn : public QObject
 {
   Q_OBJECT
 
@@ -44,6 +44,8 @@ public:
 
   /** Returns the number of possible alarm configurations. */
   size_t numAlarms() const;
+  /** Reads the number of possible alarm configurations from the device. */
+  size_t readNumAlarms(bool *ok=0);
   /** Loads and returns the specified alarm. */
   const Alarm &loadAlarm(size_t idx, bool *ok=0);
   /** Retunrs a particular alarm config. */
@@ -66,13 +68,8 @@ public:
   /** Reads the core and device temperature. */
   bool getTemp(double &core, double &amb);
 
-  /* Implementation of QAbstractListModel interface. */
-  int rowCount(const QModelIndex &parent) const;
-  int columnCount(const QModelIndex &parent) const;
-  QVariant data(const QModelIndex &index, int role) const;
-  QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-  Qt::ItemFlags flags(const QModelIndex &index) const;
-  bool setData(const QModelIndex &index, const QVariant &value, int role);
+  /** Reads the curren device nonce. */
+  bool readNonce();
 
 protected:
   /** Sends a char to the device. */
@@ -106,8 +103,8 @@ protected:
   QVector<Alarm> _alarms;
   /** The secret shared with the device, initially 128 0-bits. */
   uint8_t _secret[16];
-  /** The current salt (obtained from the device). */
-  uint8_t _salt[8];
+  /** The current nonce (obtained from the device). */
+  uint8_t _nonce[8];
 };
 
 #endif // DAWN_HH

@@ -101,8 +101,21 @@
  */
 extern void i2c_init(void);
 
+/**
+ * @brief Locks the I2C interface.
+ * @param void
+ * @return 1 If lock was aquired successfully, 0 else.
+ */
+extern uint8_t i2c_lock(void);
 
-/** 
+/**
+ * @brief Unlocks the I2C interface.
+ * @param void
+ * @return none.
+ */
+extern void i2c_unlock(void);
+
+/**
  @brief Terminates the data transfer and releases the I2C bus 
  @param void
  @return none

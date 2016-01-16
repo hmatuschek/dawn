@@ -3,4 +3,7 @@
         <file alias="quit.png">shared/power-standby.png</file>
         <file alias="settings.png">shared/wrench.png</file>
     </qresource>
+    <qresource lang="de_DE" prefix="/i18n">
+        <file alias="dawn.qm">i18n/dawn_de_DE.qm</file>
+    </qresource>
 </RCC>

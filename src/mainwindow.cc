@@ -7,12 +7,12 @@
 
 #include "dayofweekdelegate.hh"
 #include "configdialog.hh"
-
+#include "alarmsettingwidget.hh"
 
 MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
   QMainWindow(parent), _dawn(dawn)
 {
-  setMinimumSize(320, 240);
+  setMinimumSize(460, 320);
   setWindowTitle(tr("Dawn control"));
 
   QToolBar *toolbar = this->addToolBar(tr("Toolbar"));
@@ -27,13 +27,8 @@ MainWindow::MainWindow(Dawn &dawn, QWidget *parent) :
 
   QAction *quit = toolbar->addAction(QIcon(":/quit.png"), tr("Quit"));
 
-  QTableView *table = new QTableView();
-  table->verticalHeader()->hide();
-  table->setModel(&_dawn);
-  table->setItemDelegateForColumn(0, new DayOfWeekDelegate());
-  table->setColumnWidth(0, 200);
-  table->setColumnWidth(1, 100);
-  this->setCentralWidget(table);
+  AlarmSettingsWidget *table = new AlarmSettingsWidget(_dawn);
+  setCentralWidget(table);
 
   QObject::connect(quit, SIGNAL(triggered()), this, SLOT(close()));
   QObject::connect(config, SIGNAL(triggered()), this, SLOT(onConfig()));

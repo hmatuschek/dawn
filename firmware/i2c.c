@@ -9,11 +9,12 @@
 #include <inttypes.h>
 #include <util/twi.h>
 #include "i2c.h"
-
+#include <avr/interrupt.h>
 
 /* I2C clock in Hz */
 #define SCL_CLOCK  100000UL
 
+volatile static uint8_t _i2c_lock = 0;
 
 /*************************************************************************
  Initialization of the I2C bus interface. Need to be called only once
@@ -25,7 +26,27 @@ void i2c_init(void)
   TWSR = 0;                         /* no prescaler */
   TWBR = ((F_CPU/SCL_CLOCK)-16UL)/2;  /* must be > 10 for stable operation */
 
+  _i2c_lock = 0;
 }/* i2c_init */
+
+
+uint8_t i2c_lock(void)
+{
+  uint8_t success;
+  cli();
+  if (_i2c_lock) {
+    success = 0;
+  } else {
+    _i2c_lock = 1;
+    success = 1;
+  }
+  sei();
+  return success;
+}
+
+void i2c_unlock(void) {
+  _i2c_lock = 0;
+}
 
 
 /*************************************************************************	

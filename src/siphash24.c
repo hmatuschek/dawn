@@ -49,7 +49,7 @@ typedef uint8_t u8;
 
 /* SipHash-2-4 */
 void
-siphash24_cbc_mac(uint8_t *out, const uint8_t *in, size_t inlen, const uint8_t *k )
+siphash24_mac(uint8_t *out, const uint8_t *in, size_t inlen, const uint8_t *k )
 {
   /* "somepseudorandomlygeneratedbytes" */
   u64 v0 = 0x736f6d6570736575ULL;
@@ -99,5 +99,22 @@ siphash24_cbc_mac(uint8_t *out, const uint8_t *in, size_t inlen, const uint8_t *
   SIPROUND;
   b = v0 ^ v1 ^ v2  ^ v3;
   U64TO8_LE( out, b );
+}
+
+void
+siphash24_cbc_mac(uint8_t *hash, const uint8_t *in, size_t inlen, const uint8_t *nonce, const uint8_t *key)
+{
+  uint8_t buffer[inlen+8];
+  memcpy(buffer, in, inlen);
+  memcpy(buffer+inlen, nonce, 8);
+  siphash24_mac(hash, buffer, inlen+8, key);
+}
+
+void
+siphash24_cbc_update_nonce(uint8_t *nonce, uint8_t *hash, const uint8_t *key) {
+  uint8_t buffer[16];
+  memcpy(buffer, nonce, 8);
+  memcpy(buffer+8, hash, 8);
+  siphash24_mac(nonce, buffer, 16, key);
 }
 

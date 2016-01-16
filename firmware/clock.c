@@ -18,7 +18,9 @@
 
 typedef enum {
   CLOCK_WAIT,
-  CLOCK_ALARM
+  CLOCK_ALARM,
+  CLOCK_DIMUP,
+  CLOCK_DIMDOWN
 } ClockState;
 
 typedef struct {
@@ -51,12 +53,17 @@ uint16_t clock_map_dawn_func(uint16_t value) {
   return x;
 }
 
-void update_datetime() {
-  // get current time
-  ds1307_getdate((uint8_t *) &clock.datetime.year, (uint8_t *) &clock.datetime.month, (uint8_t *) &clock.datetime.day,
-                 (uint8_t *) &clock.datetime.hour, (uint8_t *) &clock.datetime.minute, (uint8_t *) &clock.datetime.second);
+uint8_t update_datetime() {
+  // try to get current time
+  if (! ds1307_getdate((uint8_t *) &clock.datetime.year, (uint8_t *) &clock.datetime.month, (uint8_t *) &clock.datetime.day,
+                       (uint8_t *) &clock.datetime.hour, (uint8_t *) &clock.datetime.minute, (uint8_t *) &clock.datetime.second)) {
+    return 0;
+  }
+  // on success, compute day of week
   clock.datetime.dayOfWeek =
       ds1307_getdayofweek(clock.datetime.year, clock.datetime.month, clock.datetime.day);
+  // done
+  return 1;
 }
 
 void
@@ -160,13 +167,19 @@ ISR(TIMER0_COMPA_vect) {
   // increment tick counter
   clock.ticks++;
 
+  // If datetime needs update -> update
+  if (clock.update_datetime && update_datetime()) {
+    // mark updated
+    clock.update_datetime = 0;
+  }
+
   // Every second
   if (clock.ticks == 100) {
     // reset tick counter
     clock.ticks = 0;
 
-    // Update date and time
-    update_datetime();
+    // mark update date and time
+    clock.update_datetime = 1;
 
     // If alarm -> update alarm seconds counter
     if (CLOCK_ALARM == clock.state) {
@@ -192,6 +205,28 @@ ISR(TIMER0_COMPA_vect) {
     pwm_set(clock_map_dawn_func(clock.value));
   }
 
+  if (CLOCK_DIMUP == clock.state) {
+    if (0xffff == clock.value) {
+      clock.state = CLOCK_WAIT;
+    } else if ((0xffff-437) <= clock.value) {
+      clock.value = 0xffff;
+      pwm_set(clock.value);
+    } else {
+      clock.value += 437;
+      pwm_set(clock.value);
+    }
+  } else if (CLOCK_DIMDOWN == clock.state) {
+    if (0 == clock.value) {
+      clock.state = CLOCK_WAIT;
+    } else if (328 >= clock.value) {
+      clock.value = 0;
+      pwm_set(clock.value);
+    } else {
+      clock.value -= 328;
+      pwm_set(clock.value);
+    }
+  }
+
   // Every 100ms -> update keys
   if (0 == (clock.ticks % 10)) {
     // Check keys:
@@ -201,9 +236,7 @@ ISR(TIMER0_COMPA_vect) {
 
     // Down key
     if (KEY_CLICK == key(0)) {
-      clock.state = CLOCK_WAIT;
-      clock.value = 0;
-      pwm_set(clock.value);
+      clock.state = CLOCK_DIMDOWN;
     } else if (KEY_HOLD == key(0)) {
       clock.state = CLOCK_WAIT;
       if (clock.value>=(1<<10)) {
@@ -216,9 +249,7 @@ ISR(TIMER0_COMPA_vect) {
 
     // Upkey
     else if (KEY_CLICK == key(1)) {
-      clock.state = CLOCK_WAIT;
-      clock.value = 0xffff;
-      pwm_set(clock.value);
+      clock.state = CLOCK_DIMUP;
     } else if (KEY_HOLD == key(1)) {
       clock.state = CLOCK_WAIT;
       if (clock.value<(0xffff-(1<<10))) {

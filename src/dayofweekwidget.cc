@@ -4,24 +4,31 @@ DayOfWeekWidget::DayOfWeekWidget(uint8_t dow, QWidget *parent)
   : QListWidget(parent)
 {
   QListWidgetItem *item = new QListWidgetItem(tr("Sunday"));
+  item->setCheckState(Qt::Unchecked);
   if (dow & 0x01) { item->setCheckState(Qt::Checked); }
   this->addItem(item); dow >>= 1;
   item = new QListWidgetItem(tr("Monday"));
+  item->setCheckState(Qt::Unchecked);
   if (dow & 0x01) { item->setCheckState(Qt::Checked); }
   this->addItem(item); dow >>= 1;
   item = new QListWidgetItem(tr("Tuesday"));
+  item->setCheckState(Qt::Unchecked);
   if (dow & 0x01) { item->setCheckState(Qt::Checked); }
   this->addItem(item); dow >>= 1;
   item = new QListWidgetItem(tr("Wednesday"));
+  item->setCheckState(Qt::Unchecked);
   if (dow & 0x01) { item->setCheckState(Qt::Checked); }
   this->addItem(item); dow >>= 1;
   item = new QListWidgetItem(tr("Thursday"));
+  item->setCheckState(Qt::Unchecked);
   if (dow & 0x01) { item->setCheckState(Qt::Checked); }
   this->addItem(item); dow >>= 1;
   item = new QListWidgetItem(tr("Friday"));
+  item->setCheckState(Qt::Unchecked);
   if (dow & 0x01) { item->setCheckState(Qt::Checked); }
   this->addItem(item); dow >>= 1;
   item = new QListWidgetItem(tr("Saturday"));
+  item->setCheckState(Qt::Unchecked);
   if (dow & 0x01) { item->setCheckState(Qt::Checked); }
   this->addItem(item); dow >>= 1;
 }

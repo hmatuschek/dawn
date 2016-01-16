@@ -2,6 +2,7 @@
 #include <QSerialPort>
 #include <QMessageBox>
 #include <QDateTime>
+#include <QTranslator>
 
 #include "portdialog.hh"
 #include "dawn.hh"
@@ -16,6 +17,9 @@
 int main(int argc, char *argv[])
 {
   QApplication app(argc, argv);
+  QTranslator translator;
+  translator.load("://i18n/dawn.qm");
+  app.installTranslator(&translator);
 
   // Register log-handler
   Logger::get().addHandler(
@@ -32,15 +36,15 @@ int main(int argc, char *argv[])
     systemLocation = dialog.systemLocation();
     dawn = new Dawn(systemLocation, secret);
 
-    if (! dawn->isValid()) {
+    if (dawn->isValid()) {
+      break;
+    } else {
       QMessageBox::critical(
             0, QObject::tr("Can not access device."),
-            QObject::tr("Can not access device at interface %1 (%2)"
-                        ).arg(name).arg(systemLocation));
+            QObject::tr("Can not access device at interface %1 (%2)").arg(
+              name, systemLocation));
       delete dawn;
-      continue;
     }
-    break;
   }
 
   // Create main window
