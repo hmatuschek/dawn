@@ -9,8 +9,7 @@ COPY "src/dawn.exe" .
 COPY "%QT_BIN_PATH%/Qt5Core.dll" .
 COPY "%QT_BIN_PATH%/Qt5Gui.dll" .
 COPY "%QT_BIN_PATH%/Qt5Widgets.dll" .
-COPY "%QT_BIN_PATH%/Qt5Svg.dll" .
-COPY "%QT_BIN_PATH%/Qt5Xml.dll" .
+COPY "%QT_BIN_PATH%/Qt5SerialPort.dll" .
 COPY "%QT_BIN_PATH%/icuin52.dll" .
 COPY "%QT_BIN_PATH%/icuuc52.dll" .
 COPY "%QT_BIN_PATH%/icudt52.dll" .
