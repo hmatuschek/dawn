@@ -1,5 +1,12 @@
 #include "logger.hh"
 
+
+LogMessage::LogMessage()
+  : std::stringstream(), _level(LOG_DEBUG)
+{
+  // pass...
+}
+
 LogMessage::LogMessage(LogLevel level)
   : std::stringstream(), _level(level)
 {
@@ -10,6 +17,13 @@ LogMessage::LogMessage(const LogMessage &other)
   : std::stringstream(), _level(other._level)
 {
   this->str(other.str());
+}
+
+LogMessage &
+LogMessage::operator =(const LogMessage &other) {
+  str(other.str());
+  _level = other._level;
+  return *this;
 }
 
 LogLevel

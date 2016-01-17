@@ -15,8 +15,10 @@ typedef enum {
 class LogMessage: public std::stringstream
 {
 public:
+  LogMessage();
   LogMessage(LogLevel level);
   LogMessage(const LogMessage &other);
+  LogMessage &operator= (const LogMessage &other);
 
   LogLevel level() const;
 

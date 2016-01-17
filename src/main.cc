@@ -23,10 +23,6 @@ int main(int argc, char *argv[])
   translator.load("://i18n/dawn.qm");
   app.installTranslator(&translator);
 
-  // Register log-handler
-  Logger::get().addHandler(
-        new StreamLogHandler(LOG_DEBUG, std::cerr));
-
   QSettings settings("hmatuschek.github.io", "dawn");
 
   Dawn *dawn = 0;
@@ -41,6 +37,7 @@ int main(int argc, char *argv[])
     systemLocation = dialog.systemLocation();
     secret = dialog.secret();
     if (16 != secret.size()) { secret.resize(16); }
+
     dawn = new Dawn(systemLocation, (const uint8_t *)secret.constData());
 
     if (dawn->isValid()) {
@@ -48,8 +45,8 @@ int main(int argc, char *argv[])
     } else {
       QMessageBox::critical(
             0, QObject::tr("Can not access device."),
-            QObject::tr("Can not access device at interface %1 (%2) using secret %3").arg(
-              name, systemLocation, QString(secret.toHex())));
+            QObject::tr("Can not access device at interface %1 (%2).").arg(
+              name, systemLocation));
       delete dawn;
     }
   }

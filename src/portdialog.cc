@@ -11,9 +11,15 @@
 NewDeviceDialog::NewDeviceDialog(QWidget *parent) :
   QDialog(parent)
 {
+  setWindowTitle(tr("Configure a new device"));
+  setMinimumWidth(460);
+
   _name = new QLineEdit(tr("Device name"));
+  _name->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
   _ports = new QComboBox();
+  _ports->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
   _secret = new QLineEdit();
+  _secret->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
   foreach (QSerialPortInfo info, QSerialPortInfo::availablePorts()) {
     _ports->addItem(info.portName(), info.systemLocation());
@@ -29,6 +35,7 @@ NewDeviceDialog::NewDeviceDialog(QWidget *parent) :
   layout->addRow(tr("Name"), _name);
   layout->addRow(tr("Interface"), _ports);
   layout->addRow(tr("Secret"), _secret);
+  layout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
   QVBoxLayout *box = new QVBoxLayout();
   box->addLayout(layout);
@@ -55,7 +62,13 @@ NewDeviceDialog::secret() const {
 DeviceDialog::DeviceDialog(QSettings &settings, QWidget *parent)
   : QDialog(parent), _settings(settings)
 {
+  setWindowTitle(tr("Select a device"));
+  setMinimumWidth(340);
+
   QLabel *label = new QLabel(tr("Select a device:"));
+  QFont font = label->font();
+  font.setPointSize(18);
+  label->setFont(font);
 
   _devices = new QComboBox();
   int size = _settings.beginReadArray("devices");
@@ -70,8 +83,8 @@ DeviceDialog::DeviceDialog(QSettings &settings, QWidget *parent)
   QDialogButtonBox *bbox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 
   QHBoxLayout *selBox = new QHBoxLayout();
-  selBox->addWidget(_devices);
-  selBox->addWidget(add);
+  selBox->addWidget(_devices,1);
+  selBox->addWidget(add,0);
 
   QVBoxLayout *layout = new QVBoxLayout();
   layout->addWidget(label);

@@ -30,10 +30,13 @@ typedef enum {
 
 
 Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent)
-  : QObject(parent), _port(portname), _valid(false)
+  : QObject(parent), _port(portname), _valid(true)
 {
   // Store shared secret
   memcpy(_secret, secret, 16);
+
+  _logmessages = new LogMessageTable();
+  Logger::get().addHandler(_logmessages);
 
   // Open port
   _port.open(QIODevice::ReadWrite);
@@ -94,7 +97,9 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
       loadAlarm(i, &ok);
       if (ok) { break; }
       usleep(100000);
+      _port.flush();
     }
+    if (! ok) { _valid = false; return;}
   }
 }
 
@@ -239,7 +244,7 @@ Dawn::getTemp(double &core, double &amb) {
     return false;
   }
   core = qFromBigEndian(*((uint16_t *)rx));
-  core = (core-430.)/0.9;
+  core = (core-275.)/1.5;
 
   amb  = qFromBigEndian(*((uint16_t *)(rx+2)));
   amb = Rr*(1024/amb - 1)/(R25*a25) + 25;
@@ -258,6 +263,11 @@ Dawn::readNonce() {
   }
   memcpy(_nonce, rx_buffer, 8);
   return true;
+}
+
+LogMessageTable *
+Dawn::logMessages() {
+  return _logmessages;
 }
 
 bool
@@ -330,14 +340,6 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   _sign(tx_buffer, cmd_len, tx_buffer+cmd_len);
 
   _port.clear();
-  {
-    LogMessage msg(LOG_DEBUG);
-    msg << "send() (" << cmd_len+8 << "):";
-    for (size_t i=0; i<(cmd_len+8); i++) {
-      msg << " " << std::hex << int(tx_buffer[i]);
-    }
-    Logger::get().log(msg);
-  }
 
   // Send assembled and signed command
   if (! _write(tx_buffer, cmd_len+8)) {
@@ -397,6 +399,10 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
 bool
 Dawn::_recover() {
   LogMessage msg(LOG_INFO); msg << "IO: Recover."; Logger::get().log(msg);
-  readNonce();
-  return true;
+  // Wait a short time
+  usleep(100000);
+  // clear buffers
+  _port.clear();
+  // try to read nonce
+  return readNonce();
 }

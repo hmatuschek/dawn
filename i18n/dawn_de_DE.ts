@@ -92,33 +92,37 @@
     <name>ConfigDialog</name>
     <message>
         <location filename="../src/configdialog.cc" line="13"/>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/configdialog.cc" line="17"/>
         <source>now</source>
         <translation>Jetzt</translation>
     </message>
     <message>
-        <location filename="../src/configdialog.cc" line="18"/>
-        <location filename="../src/configdialog.cc" line="19"/>
+        <location filename="../src/configdialog.cc" line="22"/>
+        <location filename="../src/configdialog.cc" line="23"/>
         <source>--- °C</source>
         <translation>--- °C</translation>
     </message>
     <message>
-        <location filename="../src/configdialog.cc" line="22"/>
+        <location filename="../src/configdialog.cc" line="26"/>
         <source>Date and Time</source>
         <translation>Datum un Uhrzeit</translation>
     </message>
     <message>
-        <location filename="../src/configdialog.cc" line="23"/>
         <source>CPU temperature</source>
-        <translation>CPU Temperatur</translation>
+        <translation type="vanished">CPU Temperatur</translation>
     </message>
     <message>
-        <location filename="../src/configdialog.cc" line="24"/>
+        <location filename="../src/configdialog.cc" line="28"/>
         <source>Device temperature</source>
         <translation>Gerätetemperatur</translation>
     </message>
     <message>
-        <location filename="../src/configdialog.cc" line="61"/>
-        <location filename="../src/configdialog.cc" line="62"/>
+        <location filename="../src/configdialog.cc" line="73"/>
+        <location filename="../src/configdialog.cc" line="74"/>
         <source>%0 °C (%1 °C)</source>
         <translation>%0 °C (%1 °C)</translation>
     </message>
@@ -215,9 +219,37 @@
 <context>
     <name>DeviceDialog</name>
     <message>
-        <location filename="../src/portdialog.cc" line="58"/>
+        <location filename="../src/portdialog.cc" line="65"/>
+        <source>Select a device</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/portdialog.cc" line="68"/>
         <source>Select a device:</source>
         <translation>Gerät wählen:</translation>
+    </message>
+</context>
+<context>
+    <name>LogMessageTable</name>
+    <message>
+        <location filename="../src/logmessagetable.cc" line="23"/>
+        <source>debug: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/logmessagetable.cc" line="24"/>
+        <source>info: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/logmessagetable.cc" line="25"/>
+        <source>warning: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/logmessagetable.cc" line="26"/>
+        <source>error: </source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -247,21 +279,26 @@
     <name>NewDeviceDialog</name>
     <message>
         <location filename="../src/portdialog.cc" line="14"/>
+        <source>Configure a new device</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/portdialog.cc" line="17"/>
         <source>Device name</source>
         <translation>Gerätename</translation>
     </message>
     <message>
-        <location filename="../src/portdialog.cc" line="29"/>
+        <location filename="../src/portdialog.cc" line="35"/>
         <source>Name</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location filename="../src/portdialog.cc" line="30"/>
+        <location filename="../src/portdialog.cc" line="36"/>
         <source>Interface</source>
         <translation>Schnittstelle</translation>
     </message>
     <message>
-        <location filename="../src/portdialog.cc" line="31"/>
+        <location filename="../src/portdialog.cc" line="37"/>
         <source>Secret</source>
         <translation>Schlüssel</translation>
     </message>
@@ -276,14 +313,18 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cc" line="50"/>
+        <location filename="../src/main.cc" line="47"/>
         <source>Can not access device.</source>
         <translation>Gerätezugriffsfehler.</translation>
     </message>
     <message>
-        <location filename="../src/main.cc" line="51"/>
+        <location filename="../src/main.cc" line="48"/>
+        <source>Can not access device at interface %1 (%2).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Can not access device at interface %1 (%2) using secret %3</source>
-        <translation>Auf das Gerät kann nicht über die Schnittstelle %1 (%2) mit dem Schlüssel %3 zugegriffen werden</translation>
+        <translation type="vanished">Auf das Gerät kann nicht über die Schnittstelle %1 (%2) mit dem Schlüssel %3 zugegriffen werden</translation>
     </message>
     <message>
         <source>Can not access device at interface %1 (%2)</source>

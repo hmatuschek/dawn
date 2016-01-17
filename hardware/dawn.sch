@@ -18409,7 +18409,7 @@ USART&lt;p&gt;
 <part name="JP1" library="pinhead" deviceset="PINHD-1X5" device="" value="GPIO"/>
 <part name="GND5" library="supply1" deviceset="GND" device=""/>
 <part name="KK1" library="heatsink" deviceset="PF750" device=""/>
-<part name="R1" library="rcl" deviceset="R-EU_" device="0204/2V" value="470"/>
+<part name="R1" library="rcl" deviceset="R-EU_" device="0204/2V" value="100"/>
 <part name="R2" library="ptc-ntc" deviceset="B57164" device="" value="1k"/>
 <part name="P+5" library="supply1" deviceset="+5V" device=""/>
 <part name="GND6" library="supply1" deviceset="GND" device=""/>

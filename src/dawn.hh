@@ -9,6 +9,8 @@
 
 #include <inttypes.h>
 
+#include "logmessagetable.hh"
+
 
 /** Proxy to the hardware. */
 class Dawn : public QObject
@@ -71,6 +73,8 @@ public:
   /** Reads the curren device nonce. */
   bool readNonce();
 
+  LogMessageTable *logMessages();
+
 protected:
   /** Sends a char to the device. */
   bool _write(uint8_t c);
@@ -97,6 +101,8 @@ protected:
 protected:
   /** The port interfacing the lamp. */
   QSerialPort _port;
+  /** Log messages */
+  LogMessageTable *_logmessages;
   /** Is set to @c true if constructed correctly. */
   bool _valid;
   /** The list of alarms. */
