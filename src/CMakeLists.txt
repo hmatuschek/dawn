@@ -62,3 +62,5 @@ set(dawn_cmd_HEADERS ${dawn_MOC_HEADERS})
 add_executable(dawncmd ${dawn_cmd_SOURCES} ${dawn_cmd_MOC_SOURCES} ${dawn_cmd_RCC_SOURCES}
   ${dawn_cmd_QM_FILES})
 target_link_libraries(dawncmd libdawn ${LIBS})
+
+install(TARGETS dawncmd DESTINATION bin/)

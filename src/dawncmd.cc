@@ -39,6 +39,9 @@ protected:
 };
 
 
+/* ********************************************************************************************* *
+ * MAIN
+ * ********************************************************************************************* */
 int main(int argc, char *argv[])
 {
   QCoreApplication app(argc, argv);
@@ -65,7 +68,6 @@ int main(int argc, char *argv[])
 
     DeviceSettings devices;
     devices.add(name, device, secret);
-
   } else if (parser.has_keyword("info")) {
     DeviceSettings devices;
     if (! devices.hasDevices()) {
@@ -81,12 +83,25 @@ int main(int argc, char *argv[])
     Dawn dawn(devices.device(device_name).device(),
               (const uint8_t *)devices.device(device_name).secret().data());
 
+    double core, amb;
+    if(! dawn.getTemp(core, amb)) {
+      std::cerr << "Failed to get device temperatures." << std::endl;
+      return -1;
+    }
+
+    std::cout << "Device info for '" << device_name.toStdString() << std::endl
+              << " port: " << devices.device(device_name).device().toStdString() << std::endl
+              << " temperature (core/amb): " << core << "/" << amb << std::endl;
   }
 
   return 0;
 }
 
 
+
+/* ********************************************************************************************* *
+ * Implementation of DeviceSettings
+ * ********************************************************************************************* */
 DeviceSettings::Device::Device()
   : _name(), _device(), _secret()
 {
