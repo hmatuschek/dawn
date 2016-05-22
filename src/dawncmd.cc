@@ -5,6 +5,7 @@
 #include <QString>
 #include "option_parser.hh"
 
+
 class DeviceSettings
 {
 public:
@@ -78,7 +79,8 @@ int main(int argc, char *argv[])
   RuleInterface &new_device = (parser.Keyword("new-device") , parser.Option("name"),
       parser.Option("device"), parser.Option("secret"));
   RuleInterface &device_info = (parser.Keyword("info"), parser.Value("devname"));
-  parser.setGrammar(new_device | device_info);
+  RuleInterface &on_off_cmd = ((parser.Keyword("on") | parser.Keyword("off")), parser.Value("devname"));
+  parser.setGrammar(new_device | device_info | on_off_cmd);
 
   Logger::get().addHandler(new StreamLogHandler(LOG_DEBUG, std::cerr));
 
@@ -94,6 +96,48 @@ int main(int argc, char *argv[])
 
     DeviceSettings devices;
     devices.add(name, device, secret);
+  } else if (parser.has_keyword("on")) {
+    DeviceSettings devices;
+    if (! devices.hasDevices()) {
+      std::cerr << "No device configured. Call 'dawncmd new-device ...'." << std::endl;
+      return -1;
+    }
+    QString device_name = parser.get_values("devname").front().c_str();
+    if (! devices.hasDevice(device_name)) {
+      std::cerr << "No device named '" << device_name.toStdString() << "' known." << std::endl;
+      return -1;
+    }
+
+    Dawn dawn(devices.device(device_name).device(),
+              (const uint8_t *)devices.device(device_name).secret().data());
+
+    if (! dawn.isValid()) {
+      std::cerr << "Failed to access device." << std::endl;
+      return -1;
+    }
+
+    dawn.setValue(0xffff);
+  } else if (parser.has_keyword("off")) {
+    DeviceSettings devices;
+    if (! devices.hasDevices()) {
+      std::cerr << "No device configured. Call 'dawncmd new-device ...'." << std::endl;
+      return -1;
+    }
+    QString device_name = parser.get_values("devname").front().c_str();
+    if (! devices.hasDevice(device_name)) {
+      std::cerr << "No device named '" << device_name.toStdString() << "' known." << std::endl;
+      return -1;
+    }
+
+    Dawn dawn(devices.device(device_name).device(),
+              (const uint8_t *)devices.device(device_name).secret().data());
+
+    if (! dawn.isValid()) {
+      std::cerr << "Failed to access device." << std::endl;
+      return -1;
+    }
+
+    dawn.setValue(0);
   } else if (parser.has_keyword("info")) {
     DeviceSettings devices;
     if (! devices.hasDevices()) {
@@ -130,7 +174,7 @@ int main(int argc, char *argv[])
               << " port: " << devices.device(device_name).device().toStdString() << std::endl
               << " temperature (core/amb): " << core << "/" << amb << std::endl
               << " device time: " << time.toString().toStdString() << std::endl
-              << " Alarm settings:" << std::endl;
+              << " alarm settings:" << std::endl;
     for (size_t i=0; i<dawn.numAlarms(); i++) {
       std::cout << "  " << i << ": " << alarm2string(dawn.alarm(i)).toStdString() << std::endl;
     }
