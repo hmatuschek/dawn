@@ -5,7 +5,6 @@
 #include <QSlider>
 #include <QHeaderView>
 
-#include "dayofweekdelegate.hh"
 #include "configdialog.hh"
 #include "alarmsettingwidget.hh"
 

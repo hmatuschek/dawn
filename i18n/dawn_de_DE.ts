@@ -255,22 +255,22 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../src/mainwindow.cc" line="16"/>
+        <location filename="../src/mainwindow.cc" line="15"/>
         <source>Dawn control</source>
         <translation>Dawn Verwaltung</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cc" line="19"/>
+        <location filename="../src/mainwindow.cc" line="18"/>
         <source>Toolbar</source>
         <translation>Toolbar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cc" line="21"/>
+        <location filename="../src/mainwindow.cc" line="20"/>
         <source>Config</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cc" line="29"/>
+        <location filename="../src/mainwindow.cc" line="28"/>
         <source>Quit</source>
         <translation>Beenden</translation>
     </message>
