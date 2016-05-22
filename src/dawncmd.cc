@@ -39,6 +39,32 @@ protected:
 };
 
 
+QString alarm2string(const Dawn::Alarm &alarm) {
+  QStringList days;
+  if (0b1111111 == alarm.dowFlags) { days.clear(); days << "Every day"; }
+  else if (0b1000001 == alarm.dowFlags) { days.clear(); days << "Weekend"; }
+  else if (0b0111110 == alarm.dowFlags) { days.clear(); days << "Work day"; }
+  else {
+    if (Dawn::MONDAY == (alarm.dowFlags & Dawn::MONDAY)) { days << "Monday"; }
+    if (Dawn::TUESDAY == (alarm.dowFlags & Dawn::TUESDAY)) { days << "Tuesday"; }
+    if (Dawn::WEDNESDAY == (alarm.dowFlags & Dawn::WEDNESDAY)) { days << "Wednesday"; }
+    if (Dawn::THURSDAY == (alarm.dowFlags & Dawn::THURSDAY)) { days << "Thursday"; }
+    if (Dawn::FRIDAY == (alarm.dowFlags & Dawn::FRIDAY)) { days << "Friday"; }
+    if (Dawn::SATURDAY == (alarm.dowFlags & Dawn::SATURDAY)) { days << "Saturday"; }
+    if (Dawn::SUNDAY == (alarm.dowFlags & Dawn::SUNDAY)) { days << "Sunday"; }
+  }
+
+  if (days.size()==1) {
+    return QString("%0 at %1").arg(days.first(), alarm.time.toString("HH:mm"));
+  } else if (days.size()){
+    return QString("%0 and %1 at %2").arg(
+          QStringList(days.mid(0, days.size()-1)).join(", "), days.last(), alarm.time.toString("HH:mm"));
+  } else {
+    return QString("Disabled");
+  }
+}
+
+
 /* ********************************************************************************************* *
  * MAIN
  * ********************************************************************************************* */
@@ -83,15 +109,31 @@ int main(int argc, char *argv[])
     Dawn dawn(devices.device(device_name).device(),
               (const uint8_t *)devices.device(device_name).secret().data());
 
+    if (! dawn.isValid()) {
+      std::cerr << "Failed to access device." << std::endl;
+      return -1;
+    }
+
     double core, amb;
     if(! dawn.getTemp(core, amb)) {
       std::cerr << "Failed to get device temperatures." << std::endl;
       return -1;
     }
 
-    std::cout << "Device info for '" << device_name.toStdString() << std::endl
+    QDateTime time = dawn.time();
+    if (! time.isValid()) {
+      std::cerr << "Failed to get device time." << std::endl;
+      return -1;
+    }
+
+    std::cout << "Device info for '" << device_name.toStdString() << "'" << std::endl
               << " port: " << devices.device(device_name).device().toStdString() << std::endl
-              << " temperature (core/amb): " << core << "/" << amb << std::endl;
+              << " temperature (core/amb): " << core << "/" << amb << std::endl
+              << " device time: " << time.toString().toStdString() << std::endl
+              << " Alarm settings:" << std::endl;
+    for (size_t i=0; i<dawn.numAlarms(); i++) {
+      std::cout << "  " << i << ": " << alarm2string(dawn.alarm(i)).toStdString() << std::endl;
+    }
   }
 
   return 0;

@@ -27,7 +27,7 @@ AlarmSettingWidget::updateText() {
   // Get alarm setting
   Dawn::Alarm alarm = _dawn.alarm(_idx);
   QStringList days;
-if (0b1111111 == alarm.dowFlags) { days.clear(); days << tr("Every day"); }
+  if (0b1111111 == alarm.dowFlags) { days.clear(); days << tr("Every day"); }
   else if (0b1000001 == alarm.dowFlags) { days.clear(); days << tr("Weekend"); }
   else if (0b0111110 == alarm.dowFlags) { days.clear(); days << tr("Work day"); }
   else {
