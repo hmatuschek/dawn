@@ -213,6 +213,9 @@ int main(int argc, char *argv[])
       std::cerr << "No valid local BT device found." << std::endl;
       return -1;
     }
+    std::cerr << "Using " << devices[0].name().toStdString()
+              << " @ " << devices[0].address().toString().toStdString() << std::endl;
+
     DawnDiscover discover(devices[0].address());
     if (discover.start())
       app.exec();
