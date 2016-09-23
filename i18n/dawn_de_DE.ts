@@ -313,12 +313,12 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cc" line="48"/>
+        <location filename="../src/main.cc" line="89"/>
         <source>Can not access device.</source>
         <translation>Gerätezugriffsfehler.</translation>
     </message>
     <message>
-        <location filename="../src/main.cc" line="49"/>
+        <location filename="../src/main.cc" line="90"/>
         <source>Can not access device at interface %1 (%2).</source>
         <translation type="unfinished"></translation>
     </message>

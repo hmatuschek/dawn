@@ -1,12 +1,12 @@
 #
 # Build base library (static)
 #
-set(libdawn_SOURCES siphash24.c logger.cc option_parser.cc
-    dawn.cc logmessagetable.cc)
+set(libdawn_SOURCES siphash24.c logger.cc option_parser.cc devicesettings.cc
+    dawn.cc logmessagetable.cc dawndiscover.cc)
 set(libdawn_MOC_HEADERS
-    dawn.hh logmessagetable.hh)
+    dawn.hh logmessagetable.hh dawndiscover.hh)
 qt5_wrap_cpp(libdawn_MOC_SOURCES ${libdawn_MOC_HEADERS})
-set(libdawn_HEADERS siphash.h logger.hh option_parser.hh ${libdawn_MOC_HEADERS} )
+set(libdawn_HEADERS siphash.h logger.hh option_parser.hh  devicesettings.hh ${libdawn_MOC_HEADERS} )
 
 add_library(libdawn STATIC ${libdawn_SOURCES} ${libdawn_MOC_SOURCES})
 set_target_properties(libdawn PROPERTIES OUTPUT_NAME "dawn")

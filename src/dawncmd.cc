@@ -3,41 +3,11 @@
 #include <QCoreApplication>
 #include <QSettings>
 #include <QString>
+#include <QBluetoothServiceDiscoveryAgent>
+
 #include "option_parser.hh"
-
-
-class DeviceSettings
-{
-public:
-  class Device {
-  public:
-    Device();
-    Device(const QString &name, const QString &device, const QByteArray secret);
-    Device(const Device &other);
-
-    Device &operator= (const Device &other);
-
-    const QString &name() const;
-    const QString &device() const;
-    const QByteArray &secret() const;
-
-  protected:
-    QString _name;
-    QString _device;
-    QByteArray _secret;
-  };
-
-public:
-  DeviceSettings();
-
-  bool hasDevices() const;
-  bool hasDevice(const QString &name) const;
-  Device device(const QString &name) const;
-  void add(const QString &name, const QString &device, const QByteArray &secret);
-
-protected:
-  QHash<QString, Device> _devices;
-};
+#include "devicesettings.hh"
+#include "dawndiscover.hh"
 
 
 QString alarm2string(const Dawn::Alarm &alarm) {
@@ -66,6 +36,52 @@ QString alarm2string(const Dawn::Alarm &alarm) {
 }
 
 
+QSerialPort *
+connect(const QString &portname) {
+  QSerialPort *port = new QSerialPort(portname);
+
+  // Open port
+  port->open(QIODevice::ReadWrite);
+  if (! port->isOpen()) {
+    LogMessage msg(LOG_ERROR);
+    msg << "IO Error: Can not open device " << portname.toStdString();
+    Logger::get().log(msg);
+    return 0;
+  }
+  if (! port->setBaudRate(QSerialPort::Baud38400)) {
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not set baudrate.";
+    Logger::get().log(msg);
+    return 0;
+  }
+  if (! port->setDataBits(QSerialPort::Data8)) {
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not set data bits.";
+    Logger::get().log(msg);
+    return 0;
+  }
+  if (! port->setParity(QSerialPort::NoParity)) {
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not set parity.";
+    Logger::get().log(msg);
+    return 0;
+  }
+  if (! port->setStopBits(QSerialPort::OneStop)) {
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not set stop bits.";
+    Logger::get().log(msg);
+    return 0;
+  }
+  if (! port->setFlowControl(QSerialPort::HardwareControl)) {
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Can not set stop bits.";
+    Logger::get().log(msg);
+    return 0;
+  }
+
+  return port;
+}
+
 /* ********************************************************************************************* *
  * MAIN
  * ********************************************************************************************* */
@@ -80,7 +96,8 @@ int main(int argc, char *argv[])
       parser.Option("device"), parser.Option("secret"));
   RuleInterface &device_info = (parser.Keyword("info"), parser.Value("devname"));
   RuleInterface &on_off_cmd = ((parser.Keyword("on") | parser.Keyword("off")), parser.Value("devname"));
-  parser.setGrammar(new_device | device_info | on_off_cmd);
+  RuleInterface &scan = parser.Keyword("scan");
+  parser.setGrammar(scan | new_device | device_info | on_off_cmd);
 
   Logger::get().addHandler(new StreamLogHandler(LOG_DEBUG, std::cerr));
 
@@ -108,9 +125,13 @@ int main(int argc, char *argv[])
       return -1;
     }
 
-    Dawn dawn(devices.device(device_name).device(),
-              (const uint8_t *)devices.device(device_name).secret().data());
+    QSerialPort *port = connect(devices.device(device_name).device());
+    if (0 == port) {
+      std::cerr << "Failed to access device." << std::endl;
+      return -1;
+    }
 
+    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data());
     if (! dawn.isValid()) {
       std::cerr << "Failed to access device." << std::endl;
       return -1;
@@ -129,9 +150,13 @@ int main(int argc, char *argv[])
       return -1;
     }
 
-    Dawn dawn(devices.device(device_name).device(),
-              (const uint8_t *)devices.device(device_name).secret().data());
+    QSerialPort *port = connect(devices.device(device_name).device());
+    if (0 == port) {
+      std::cerr << "Failed to access device." << std::endl;
+      return -1;
+    }
 
+    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data());
     if (! dawn.isValid()) {
       std::cerr << "Failed to access device." << std::endl;
       return -1;
@@ -150,9 +175,13 @@ int main(int argc, char *argv[])
       return -1;
     }
 
-    Dawn dawn(devices.device(device_name).device(),
-              (const uint8_t *)devices.device(device_name).secret().data());
+    QSerialPort *port = connect(devices.device(device_name).device());
+    if (0 == port) {
+      std::cerr << "Failed to access device." << std::endl;
+      return -1;
+    }
 
+    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data());
     if (! dawn.isValid()) {
       std::cerr << "Failed to access device." << std::endl;
       return -1;
@@ -178,98 +207,12 @@ int main(int argc, char *argv[])
     for (size_t i=0; i<dawn.numAlarms(); i++) {
       std::cout << "  " << i << ": " << alarm2string(dawn.alarm(i)).toStdString() << std::endl;
     }
+  } else if (parser.has_keyword("scan")) {
+    DawnDiscover discover;
+    if (discover.start())
+      app.exec();
   }
 
   return 0;
 }
 
-
-
-/* ********************************************************************************************* *
- * Implementation of DeviceSettings
- * ********************************************************************************************* */
-DeviceSettings::Device::Device()
-  : _name(), _device(), _secret()
-{
-  // pass...
-}
-
-DeviceSettings::Device::Device(const QString &name, const QString &device, const QByteArray secret)
-  : _name(name), _device(device), _secret(secret)
-{
-  // pass...
-}
-
-DeviceSettings::Device::Device(const Device &other)
-  : _name(other._name), _device(other._device), _secret(other._secret)
-{
-  // pass...
-}
-
-DeviceSettings::Device &
-DeviceSettings::Device::operator =(const DeviceSettings::Device &other) {
-  _name = other._name;
-  _device = other._device;
-  _secret = other._secret;
-  return *this;
-}
-
-const QString &
-DeviceSettings::Device::name() const {
-  return _name;
-}
-
-const QString &
-DeviceSettings::Device::device() const {
-  return _device;
-}
-
-const QByteArray &
-DeviceSettings::Device::secret() const {
-  return _secret;
-}
-
-
-DeviceSettings::DeviceSettings()
-{
-  QSettings settings("hmatuschek.github.io", "dawn");
-  int num_devices = settings.beginReadArray("devices");
-  for (int i=0; i<num_devices; i++) {
-    settings.setArrayIndex(i);
-    Device dev(settings.value("name").toString(), settings.value("port").toString(),
-               QByteArray::fromHex(settings.value("secret").toByteArray()));
-    _devices[dev.name()] = dev;
-  }
-  settings.endArray();
-}
-
-bool
-DeviceSettings::hasDevices() const {
-  return 0 != _devices.size();
-}
-
-bool
-DeviceSettings::hasDevice(const QString &name) const {
-  return _devices.contains(name);
-}
-
-DeviceSettings::Device
-DeviceSettings::device(const QString &name) const {
-  return _devices[name];
-}
-
-void
-DeviceSettings::add(const QString &name, const QString &device, const QByteArray &secret) {
-  _devices.insert(name, Device(name, device, secret));
-
-  QSettings settings("hmatuschek.github.io", "dawn");
-  settings.beginWriteArray("devices");
-  QHash<QString, Device>::iterator item = _devices.begin();
-  for (int i=0; item != _devices.end(); item++, i++) {
-    settings.setArrayIndex(i);
-    settings.setValue("name", item->name());
-    settings.setValue("port", item->device());
-    settings.setValue("secret", item->secret().toHex());
-  }
-  settings.endArray();
-}

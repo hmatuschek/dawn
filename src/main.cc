@@ -39,17 +39,61 @@ int main(int argc, char *argv[])
     secret = dialog.secret();
     if (16 != secret.size()) { secret.resize(16); }
 
-    dawn = new Dawn(systemLocation, (const uint8_t *)secret.constData());
+    QSerialPort *port = new QSerialPort(systemLocation);
 
-    if (dawn->isValid()) {
-      break;
-    } else {
+    // Open port
+    port->open(QIODevice::ReadWrite);
+    if (! port->isOpen()) {
+      LogMessage msg(LOG_ERROR);
+      msg << "IO Error: Can not open device " << systemLocation.toStdString();
+      Logger::get().log(msg);
+      goto error;
+    }
+    if (! port->setBaudRate(QSerialPort::Baud38400)) {
+      LogMessage msg(LOG_ERROR);
+      msg << "IO: Can not set baudrate.";
+      Logger::get().log(msg);
+      goto error;
+    }
+    if (! port->setDataBits(QSerialPort::Data8)) {
+      LogMessage msg(LOG_ERROR);
+      msg << "IO: Can not set data bits.";
+      Logger::get().log(msg);
+      goto error;
+    }
+    if (! port->setParity(QSerialPort::NoParity)) {
+      LogMessage msg(LOG_ERROR);
+      msg << "IO: Can not set parity.";
+      Logger::get().log(msg);
+      goto error;
+    }
+    if (! port->setStopBits(QSerialPort::OneStop)) {
+      LogMessage msg(LOG_ERROR);
+      msg << "IO: Can not set stop bits.";
+      Logger::get().log(msg);
+      goto error;
+    }
+    if (! port->setFlowControl(QSerialPort::HardwareControl)) {
+      LogMessage msg(LOG_ERROR);
+      msg << "IO: Can not set stop bits.";
+      Logger::get().log(msg);
+      goto error;
+    }
+
+    dawn = new Dawn(port, (const uint8_t *)secret.constData());
+
+    break;
+
+error:
       QMessageBox::critical(
             0, QObject::tr("Can not access device."),
             QObject::tr("Can not access device at interface %1 (%2).").arg(
               name, systemLocation));
-      delete dawn;
-    }
+      if (dawn)
+        delete dawn;
+      else
+        delete port;
+      dawn = 0;
   }
 
   // Create main window

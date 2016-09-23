@@ -29,54 +29,16 @@ typedef enum {
 } Commands;
 
 
-Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent)
-  : QObject(parent), _port(portname), _valid(true)
+Dawn::Dawn(QIODevice *port, const unsigned char *secret, QObject *parent)
+  : QObject(parent), _port(port), _valid(true)
 {
+  _port->setParent(this);
+
   // Store shared secret
   memcpy(_secret, secret, 16);
 
   _logmessages = new LogMessageTable();
   Logger::get().addHandler(_logmessages);
-
-  // Open port
-  _port.open(QIODevice::ReadWrite);
-  if (! _port.isOpen()) {
-    LogMessage msg(LOG_ERROR);
-    msg << "IO Error: Can not open device " << portname.toStdString();
-    Logger::get().log(msg);
-    return;
-  }
-
-  if (! _port.setBaudRate(QSerialPort::Baud38400)) {
-    LogMessage msg(LOG_ERROR);
-    msg << "IO: Can not set baudrate.";
-    Logger::get().log(msg);
-    return;
-  }
-  if (! _port.setDataBits(QSerialPort::Data8)) {
-    LogMessage msg(LOG_ERROR);
-    msg << "IO: Can not set data bits.";
-    Logger::get().log(msg);
-    return;
-  }
-  if (! _port.setParity(QSerialPort::NoParity)) {
-    LogMessage msg(LOG_ERROR);
-    msg << "IO: Can not set parity.";
-    Logger::get().log(msg);
-    return;
-  }
-  if (! _port.setStopBits(QSerialPort::OneStop)) {
-    LogMessage msg(LOG_ERROR);
-    msg << "IO: Can not set stop bits.";
-    Logger::get().log(msg);
-    return;
-  }
-  if (! _port.setFlowControl(QSerialPort::HardwareControl)) {
-    LogMessage msg(LOG_ERROR);
-    msg << "IO: Can not set stop bits.";
-    Logger::get().log(msg);
-    return;
-  }
 
   // First, get nonce
   if (!readNonce()) {
@@ -97,7 +59,6 @@ Dawn::Dawn(const QString &portname, const unsigned char *secret, QObject *parent
       loadAlarm(i, &ok);
       if (ok) { break; }
       usleep(100000);
-      _port.flush();
     }
     if (! ok) { _valid = false; return;}
   }
@@ -272,40 +233,38 @@ Dawn::logMessages() {
 
 bool
 Dawn::_write(uint8_t c) {
-  bool res = _port.putChar(c);
-  _port.flush();
+  bool res = _port->putChar(c);
   return res;
 }
 
 bool
 Dawn::_write(uint8_t *buffer, size_t len) {
-  bool res = (len == size_t(_port.write((char *)buffer, len)));
-  _port.flush();
+  bool res = (len == size_t(_port->write((char *)buffer, len)));
   return res;
 }
 
 bool
 Dawn::_read(uint8_t &c) {
-  if (! _port.waitForReadyRead(1000)) {
+  if (! _port->waitForReadyRead(1000)) {
     LogMessage msg(LOG_WARNING);
     msg << "read(): Timeout.";
     Logger::get().log(msg);
     return false;
   }
-  return _port.getChar((char *) &c);
+  return _port->getChar((char *) &c);
 }
 
 bool
 Dawn::_read(uint8_t *buffer, size_t len) {
   size_t rem = len;
   while (rem) {
-    if (! _port.waitForReadyRead(1000) ) {
+    if (! _port->waitForReadyRead(1000) ) {
       LogMessage msg(LOG_WARNING);
       msg << "read(): Timeout.";
       Logger::get().log(msg);
       return false;
     }
-    int got = _port.read((char *)buffer, rem);
+    int got = _port->read((char *)buffer, rem);
     if (-1 == got) {
       LogMessage msg(LOG_WARNING);
       msg <<"read(): Can not read from device.";
@@ -338,8 +297,6 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
   uint8_t tx_buffer[cmd_len+8];
   memcpy(tx_buffer, cmd, cmd_len);
   _sign(tx_buffer, cmd_len, tx_buffer+cmd_len);
-
-  _port.clear();
 
   // Send assembled and signed command
   if (! _write(tx_buffer, cmd_len+8)) {
@@ -401,8 +358,6 @@ Dawn::_recover() {
   LogMessage msg(LOG_INFO); msg << "IO: Recover."; Logger::get().log(msg);
   // Wait a short time
   usleep(100000);
-  // clear buffers
-  _port.clear();
   // try to read nonce
   return readNonce();
 }

@@ -39,7 +39,7 @@ public:
 public:
   /** Constructor, @c portname specifies the name of the serial port interfacing the
    * device. */
-  explicit Dawn(const QString &portname, const unsigned char *secret, QObject *parent = 0);
+  explicit Dawn(QIODevice *port, const unsigned char *secret, QObject *parent = 0);
 
   /** Returns @c true, if the device was initialized correctly. */
   bool isValid() const;
@@ -100,7 +100,7 @@ protected:
 
 protected:
   /** The port interfacing the lamp. */
-  QSerialPort _port;
+  QIODevice *_port;
   /** Log messages */
   LogMessageTable *_logmessages;
   /** Is set to @c true if constructed correctly. */
