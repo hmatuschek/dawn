@@ -208,9 +208,15 @@ int main(int argc, char *argv[])
       std::cout << "  " << i << ": " << alarm2string(dawn.alarm(i)).toStdString() << std::endl;
     }
   } else if (parser.has_keyword("scan")) {
-    DawnDiscover discover;
+    QList<QBluetoothHostInfo> devices = QBluetoothLocalDevice::allDevices();
+    if (0 == devices.size()) {
+      std::cerr << "No valid local BT device found." << std::endl;
+      return -1;
+    }
+    DawnDiscover discover(devices[0].address());
     if (discover.start())
       app.exec();
+
   }
 
   return 0;
