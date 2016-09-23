@@ -7,8 +7,10 @@
 DawnDiscover::DawnDiscover(QObject *parent)
   : QObject(parent), _local(), _discovery()
 {
-  if (! _local.isValid())
+  if (! _local.isValid()) {
+    std::cerr << "No valid local BT device." << std::endl;
     return;
+  }
 
   _local.powerOn();
   _local.setHostMode(QBluetoothLocalDevice::HostDiscoverable);
@@ -23,6 +25,7 @@ DawnDiscover::DawnDiscover(QObject *parent)
 bool
 DawnDiscover::start() {
   if (! _local.isValid()) {
+    std::cerr << "No valid local BT device." << std::endl;
     return false;
   }
   if (QBluetoothDeviceDiscoveryAgent::NoError != _discovery.error()) {
