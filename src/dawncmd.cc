@@ -210,13 +210,14 @@ int main(int argc, char *argv[])
   } else if (parser.has_keyword("scan")) {
     QList<QBluetoothHostInfo> devices = QBluetoothLocalDevice::allDevices();
     if (0 == devices.size()) {
-      std::cerr << "No valid local BT device found." << std::endl;
+      std::cerr << "No valid local BT devices found." << std::endl;
       return -1;
     }
     std::cerr << "Using " << devices[0].name().toStdString()
               << " @ " << devices[0].address().toString().toStdString() << std::endl;
 
-    DawnDiscover discover(devices[0].address());
+    //DawnDiscover discover(devices[0].address());
+    DawnDiscover discover;
     if (discover.start())
       app.exec();
 

@@ -4,6 +4,25 @@
 #include <QTimer>
 #include <QCoreApplication>
 
+
+DawnDiscover::DawnDiscover(QObject *parent)
+  : QObject(parent), _local(), _discovery()
+{
+  if (! _local.isValid()) {
+    std::cerr << "No valid local BT device." << std::endl;
+    return;
+  }
+
+  _local.powerOn();
+  _local.setHostMode(QBluetoothLocalDevice::HostDiscoverable);
+
+  connect(&_discovery, SIGNAL(deviceDiscovered(QBluetoothDeviceInfo)),
+          this, SLOT(deviceDiscovered(QBluetoothDeviceInfo)));
+  connect(&_discovery, SIGNAL(finished()), this, SLOT(finished()));
+  connect(&_discovery, SIGNAL(error(QBluetoothDeviceDiscoveryAgent::Error)),
+          this, SLOT(finished()));
+}
+
 DawnDiscover::DawnDiscover(const QBluetoothAddress &device, QObject *parent)
   : QObject(parent), _local(device), _discovery(device)
 {

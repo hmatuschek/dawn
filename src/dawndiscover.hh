@@ -9,6 +9,7 @@ class DawnDiscover : public QObject
 {
   Q_OBJECT
 public:
+  explicit DawnDiscover(QObject *parent = 0);
   explicit DawnDiscover(const QBluetoothAddress &device, QObject *parent = 0);
 
 public slots:
