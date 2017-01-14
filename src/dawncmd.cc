@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
       parser.Option("device"), parser.Option("secret"));
   RuleInterface &device_info = (parser.Keyword("info"), parser.Value("devname"));
   RuleInterface &on_off_cmd = ((parser.Keyword("on") | parser.Keyword("off")), parser.Value("devname"));
-  RuleInterface &scan = parser.Keyword("scan");
+  RuleInterface &scan = (parser.Keyword("scan"), parser.Value("addr"));
   parser.setGrammar(scan | new_device | device_info | on_off_cmd);
 
   Logger::get().addHandler(new StreamLogHandler(LOG_DEBUG, std::cerr));
@@ -207,17 +207,17 @@ int main(int argc, char *argv[])
     for (size_t i=0; i<dawn.numAlarms(); i++) {
       std::cout << "  " << i << ": " << alarm2string(dawn.alarm(i)).toStdString() << std::endl;
     }
-  } else if (parser.has_keyword("scan")) {
+  } else if (parser.has_keyword("scan") && parser.has_values("addr")) {
     QList<QBluetoothHostInfo> devices = QBluetoothLocalDevice::allDevices();
     if (0 == devices.size()) {
       std::cerr << "No valid local BT devices found." << std::endl;
       return -1;
+    } else {
+      std::cerr << "Using " << devices[0].name().toStdString()
+                << " @ " << devices[0].address().toString().toStdString() << std::endl;
     }
-    std::cerr << "Using " << devices[0].name().toStdString()
-              << " @ " << devices[0].address().toString().toStdString() << std::endl;
 
-    //DawnDiscover discover(devices[0].address());
-    DawnDiscover discover;
+    DawnDiscover discover(QBluetoothAddress(parser.get_values("addr").front().c_str()));
     if (discover.start())
       app.exec();
 
