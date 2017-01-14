@@ -211,11 +211,11 @@ int main(int argc, char *argv[])
     QList<QBluetoothHostInfo> devices = QBluetoothLocalDevice::allDevices();
     if (0 == devices.size()) {
       std::cerr << "No valid local BT devices found." << std::endl;
-      return -1;
+      //return -1;
+    } else {
+      std::cerr << "Using " << devices[0].name().toStdString()
+                << " @ " << devices[0].address().toString().toStdString() << std::endl;
     }
-    std::cerr << "Using " << devices[0].name().toStdString()
-              << " @ " << devices[0].address().toString().toStdString() << std::endl;
-
     //DawnDiscover discover(devices[0].address());
     DawnDiscover discover;
     if (discover.start())

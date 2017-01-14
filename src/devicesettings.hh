@@ -2,6 +2,10 @@
 #define DEVICESETTINGS_HH
 
 #include <QHash>
+#include <QString>
+#include <QStringList>
+#include <QByteArray>
+
 
 /** Represents the list of configured devices. */
 class DeviceSettings
