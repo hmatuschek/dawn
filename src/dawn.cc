@@ -355,7 +355,7 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
 
 bool
 Dawn::_recover() {
-  char buffer[32]; _read(buffer, 32);
+  uint8_t buffer[32]; _read(buffer, 32);
   LogMessage msg(LOG_INFO); msg << "IO: Recover."; Logger::get().log(msg);
   // Wait a short time
   usleep(100000);
