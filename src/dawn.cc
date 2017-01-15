@@ -40,8 +40,8 @@ Dawn::Dawn(QSerialPort *port, const unsigned char *secret, QObject *parent)
   _logmessages = new LogMessageTable();
   Logger::get().addHandler(_logmessages);
 
-  // First, get nonce
-  if (!readNonce()) {
+  // First, flush the port etc...
+  if (!_recover()) {
     LogMessage msg(LOG_ERROR);
     msg << "IO: Can not read nonce from device.";
     Logger::get().log(msg);
