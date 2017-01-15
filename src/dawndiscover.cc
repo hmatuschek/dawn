@@ -8,13 +8,15 @@
 DawnDiscover::DawnDiscover(QObject *parent)
   : QObject(parent), _local(), _discovery()
 {
-  if (! _local.isValid()) {
-    std::cerr << "No valid local BT device." << std::endl;
+  if ((! _local.isValid()) || (QBluetoothDeviceDiscoveryAgent::NoError != _discovery.error())) {
+    std::cerr << "No valid local BT device: " << _discovery.errorString().toStdString() << std::endl;
     return;
   }
 
   _local.powerOn();
   _local.setHostMode(QBluetoothLocalDevice::HostDiscoverable);
+
+  qDebug() << _local.connectedDevices();
 
   connect(&_discovery, SIGNAL(deviceDiscovered(QBluetoothDeviceInfo)),
           this, SLOT(deviceDiscovered(QBluetoothDeviceInfo)));
@@ -26,8 +28,8 @@ DawnDiscover::DawnDiscover(QObject *parent)
 DawnDiscover::DawnDiscover(const QBluetoothAddress &device, QObject *parent)
   : QObject(parent), _local(device), _discovery(device)
 {
-  if (! _local.isValid()) {
-    std::cerr << "No valid local BT device." << std::endl;
+  if ((! _local.isValid()) || (QBluetoothDeviceDiscoveryAgent::NoError != _discovery.error())) {
+    std::cerr << "No valid local BT device: " << _discovery.errorString().toStdString() << std::endl;
     return;
   }
 
@@ -37,6 +39,7 @@ DawnDiscover::DawnDiscover(const QBluetoothAddress &device, QObject *parent)
   connect(&_discovery, SIGNAL(deviceDiscovered(QBluetoothDeviceInfo)),
           this, SLOT(deviceDiscovered(QBluetoothDeviceInfo)));
   connect(&_discovery, SIGNAL(finished()), this, SLOT(finished()));
+  connect(&_discovery, SIGNAL(canceled()), this, SLOT(finished())) ;
   connect(&_discovery, SIGNAL(error(QBluetoothDeviceDiscoveryAgent::Error)),
           this, SLOT(finished()));
 }
@@ -52,6 +55,9 @@ DawnDiscover::start() {
     return false;
   }
   std::cerr << "Scan for devices..." << std::endl;
+  foreach (QBluetoothDeviceInfo info, _discovery.discoveredDevices()) {
+    qDebug() << info.address() << ": " << info.name();
+  }
   _discovery.start();
   return true;
 }
