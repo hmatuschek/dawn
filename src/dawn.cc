@@ -245,7 +245,7 @@ Dawn::_write(uint8_t *buffer, size_t len) {
 
 bool
 Dawn::_read(uint8_t &c) {
-  if (! _port->waitForReadyRead(1000)) {
+  if (! _port->waitForReadyRead(1500)) {
     LogMessage msg(LOG_WARNING);
     msg << "read(): Timeout.";
     Logger::get().log(msg);
@@ -258,7 +258,7 @@ bool
 Dawn::_read(uint8_t *buffer, size_t len) {
   size_t rem = len;
   while (rem) {
-    if (! _port->waitForReadyRead(1000) ) {
+    if (! _port->waitForReadyRead(1500) ) {
       LogMessage msg(LOG_WARNING);
       msg << "read(): Timeout.";
       Logger::get().log(msg);
