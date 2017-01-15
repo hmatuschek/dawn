@@ -38,6 +38,9 @@ QString alarm2string(const Dawn::Alarm &alarm) {
 uint8_t string2dayofweek(const QString &str) {
   if (str.contains("all"))
     return 0b1111111;
+  if (str.contains("none"))
+    return 0;
+
   uint8_t mask = 0;
   if (str.contains("mon"))
     mask |= Dawn::MONDAY;
@@ -160,7 +163,7 @@ int main(int argc, char *argv[])
       return -1;
     }
 
-    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data());
+    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data(), false);
     if (! dawn.isValid()) {
       std::cerr << "Failed to access device." << std::endl;
       return -1;
@@ -185,7 +188,7 @@ int main(int argc, char *argv[])
       return -1;
     }
 
-    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data());
+    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data(), false);
     if (! dawn.isValid()) {
       std::cerr << "Failed to access device." << std::endl;
       return -1;
@@ -239,13 +242,15 @@ int main(int argc, char *argv[])
   } else if (parser.has_keyword("alarm")) {
     int num = atoi(parser.get_values("num").front().c_str());
     if ((num<0) || (num>6)) {
-      std::cout << "Invalid alarm index " << num << " must be between 0 and 6." << std::endl;
+      std::cerr << "Invalid alarm index " << num << " must be between 0 and 6." << std::endl;
       return -1;
     }
 
     Dawn::Alarm alarm;
     alarm.dowFlags = string2dayofweek(parser.get_values("days").front().c_str());
-    alarm.time = QTime::fromString(parser.get_values("time").front().c_str());
+    alarm.time = QTime::fromString(parser.get_values("time").front().c_str(), "hh:mm");
+
+    std::cout << "Set alarm " << num << " to " << alarm2string(alarm).toStdString() << std::endl;
 
     DeviceSettings devices;
     if (! devices.hasDevices()) {
@@ -264,7 +269,7 @@ int main(int argc, char *argv[])
       return -1;
     }
 
-    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data());
+    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data(), false);
     if (! dawn.isValid()) {
       std::cerr << "Failed to access device." << std::endl;
       return -1;
