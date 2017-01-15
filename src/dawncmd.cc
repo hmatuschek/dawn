@@ -3,8 +3,6 @@
 #include <QCoreApplication>
 #include <QSettings>
 #include <QString>
-#include <QBluetoothServiceDiscoveryAgent>
-#include <QBluetoothSocket>
 
 #include "option_parser.hh"
 #include "devicesettings.hh"
@@ -100,9 +98,9 @@ int main(int argc, char *argv[])
       parser.Option("device"), parser.Option("secret"));
   RuleInterface &device_info = (parser.Keyword("info"), parser.Value("devname"));
   RuleInterface &on_off_cmd = ((parser.Keyword("on") | parser.Keyword("off")), parser.Value("devname"));
-  RuleInterface &scan = (parser.Keyword("scan"), parser.Value("addr"));
-  RuleInterface &con = (parser.Keyword("connect"), parser.Value("addr"));
-  parser.setGrammar(con | scan | new_device | device_info | on_off_cmd);
+  RuleInterface &scan = (parser.Keyword("scan"));
+  RuleInterface &set_alarm  = (parser.Keyword("alarm"), parser.Value("num"), parser.Value("days"), parser.Value("time"), parser.Value("devname"));
+  parser.setGrammar(scan | new_device | device_info | on_off_cmd | set_alarm);
 
   Logger::get().addHandler(new StreamLogHandler(LOG_DEBUG, std::cerr));
 
@@ -212,17 +210,19 @@ int main(int argc, char *argv[])
     for (size_t i=0; i<dawn.numAlarms(); i++) {
       std::cout << "  " << i << ": " << alarm2string(dawn.alarm(i)).toStdString() << std::endl;
     }
-  } else if (parser.has_keyword("scan") && parser.has_values("addr")) {
-    QList<QBluetoothHostInfo> devices = QBluetoothLocalDevice::allDevices();
-    if (0 == devices.size()) {
-      std::cerr << "No valid local BT devices found." << std::endl;
-    } else {
-      std::cerr << "Using " << devices[0].name().toStdString()
-                << " @ " << devices[0].address().toString().toStdString() << std::endl;
+  } else if (parser.has_keyword("alarm")) {
+    int num = atoi(parser.get_values("num").front().c_str());
+    if ((num<0) || (num>6)) {
+      std::cout << "Invalid alarm index " << num << " must be between 0 and 6." << std::endl;
+      return -1;
     }
-    DawnDiscover discover(QBluetoothAddress(parser.get_values("addr").front().c_str()));
-    if (discover.start())
-      app.exec();
+  } else if (parser.has_keyword("scan")) {
+    DawnDiscover discover;
+    if (! discover.start()) {
+      std::cerr << "Oops..." <<std::endl;
+      return -1;
+    }
+    app.exec();
   }
 
   return 0;
