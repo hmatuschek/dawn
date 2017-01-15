@@ -39,7 +39,7 @@ public:
 public:
   /** Constructor, @c portname specifies the name of the serial port interfacing the
    * device. */
-  explicit Dawn(QSerialPort *port, const unsigned char *secret, QObject *parent = 0);
+  explicit Dawn(QSerialPort *port, const unsigned char *secret, bool initAlarm=true, QObject *parent = 0);
 
   /** Returns @c true, if the device was initialized correctly. */
   bool isValid() const;

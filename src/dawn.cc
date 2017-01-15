@@ -29,7 +29,7 @@ typedef enum {
 } Commands;
 
 
-Dawn::Dawn(QSerialPort *port, const unsigned char *secret, QObject *parent)
+Dawn::Dawn(QSerialPort *port, const unsigned char *secret, bool initAlarm, QObject *parent)
   : QObject(parent), _port(port), _valid(true)
 {
   _port->setParent(this);
@@ -53,14 +53,16 @@ Dawn::Dawn(QSerialPort *port, const unsigned char *secret, QObject *parent)
   if (! _valid) { return; }
 
   _alarms.resize(nAlarm);
-  for (size_t i=0; i<7; i++) {
-    bool ok = true;
-    for (int j=0; j<5; j++) {
-      loadAlarm(i, &ok);
-      if (ok) { break; }
-      usleep(100000);
+  if (initAlarm) {
+    for (size_t i=0; i<nAlarm; i++) {
+      bool ok = true;
+      for (int j=0; j<5; j++) {
+        loadAlarm(i, &ok);
+        if (ok) { break; }
+        usleep(100000);
+      }
+      if (! ok) { _valid = false; return;}
     }
-    if (! ok) { _valid = false; return;}
   }
 }
 
@@ -85,7 +87,7 @@ Dawn::readNumAlarms(bool *ok) {
     if (ok) { *ok = false; }
     return 0;
   }
-  if(ok) { *ok = true; }
+  if (ok) { *ok = true; }
   return rx_buffer[0];
 }
 
