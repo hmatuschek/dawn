@@ -16,8 +16,6 @@ DawnDiscover::DawnDiscover(QObject *parent)
   _local.powerOn();
   _local.setHostMode(QBluetoothLocalDevice::HostDiscoverable);
 
-  qDebug() << _local.connectedDevices();
-
   connect(&_discovery, SIGNAL(deviceDiscovered(QBluetoothDeviceInfo)),
           this, SLOT(deviceDiscovered(QBluetoothDeviceInfo)));
   connect(&_discovery, SIGNAL(finished()), this, SLOT(finished()));
