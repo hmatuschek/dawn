@@ -4,10 +4,12 @@
 #include <QSettings>
 #include <QString>
 #include <QBluetoothServiceDiscoveryAgent>
+#include <QBluetoothSocket>
 
 #include "option_parser.hh"
 #include "devicesettings.hh"
 #include "dawndiscover.hh"
+#include <QLoggingCategory>
 
 
 QString alarm2string(const Dawn::Alarm &alarm) {
@@ -87,6 +89,8 @@ connect(const QString &portname) {
  * ********************************************************************************************* */
 int main(int argc, char *argv[])
 {
+  QLoggingCategory::setFilterRules(QStringLiteral("qt.bluetooth* = true"));
+
   QCoreApplication app(argc, argv);
   app.setOrganizationDomain("hmatuschek.github.io");
   app.setApplicationName("dawncmd");
@@ -97,7 +101,8 @@ int main(int argc, char *argv[])
   RuleInterface &device_info = (parser.Keyword("info"), parser.Value("devname"));
   RuleInterface &on_off_cmd = ((parser.Keyword("on") | parser.Keyword("off")), parser.Value("devname"));
   RuleInterface &scan = (parser.Keyword("scan"), parser.Value("addr"));
-  parser.setGrammar(scan | new_device | device_info | on_off_cmd);
+  RuleInterface &con = (parser.Keyword("connect"), parser.Value("addr"));
+  parser.setGrammar(con | scan | new_device | device_info | on_off_cmd);
 
   Logger::get().addHandler(new StreamLogHandler(LOG_DEBUG, std::cerr));
 
@@ -208,19 +213,9 @@ int main(int argc, char *argv[])
       std::cout << "  " << i << ": " << alarm2string(dawn.alarm(i)).toStdString() << std::endl;
     }
   } else if (parser.has_keyword("scan") && parser.has_values("addr")) {
-    QList<QBluetoothHostInfo> devices = QBluetoothLocalDevice::allDevices();
-    if (0 == devices.size()) {
-      std::cerr << "No valid local BT devices found." << std::endl;
-      return -1;
-    } else {
-      std::cerr << "Using " << devices[0].name().toStdString()
-                << " @ " << devices[0].address().toString().toStdString() << std::endl;
-    }
-
     DawnDiscover discover(QBluetoothAddress(parser.get_values("addr").front().c_str()));
     if (discover.start())
       app.exec();
-
   }
 
   return 0;
