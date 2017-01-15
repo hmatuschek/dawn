@@ -35,6 +35,32 @@ QString alarm2string(const Dawn::Alarm &alarm) {
   }
 }
 
+uint8_t string2dayofweek(const QString &str) {
+  if (str.contains("all"))
+    return 0b1111111;
+  uint8_t mask = 0;
+  if (str.contains("mon"))
+    mask |= Dawn::MONDAY;
+  if (str.contains("tue"))
+    mask |= Dawn::TUESDAY;
+  if (str.contains("wed"))
+    mask |= Dawn::WEDNESDAY;
+  if (str.contains("thu"))
+    mask |= Dawn::THURSDAY;
+  if (str.contains("fri"))
+    mask |= Dawn::FRIDAY;
+  if (str.contains("sat"))
+    mask |= Dawn::SATURDAY;
+  if (str.contains("sun"))
+    mask |= Dawn::SUNDAY;
+  if (str.contains("weekday"))
+    mask |= 0b0111110;
+  if (str.contains("weekend"))
+    mask |= 0b1000001;
+  return mask;
+}
+
+
 
 QSerialPort *
 connect(const QString &portname) {
@@ -216,6 +242,35 @@ int main(int argc, char *argv[])
       std::cout << "Invalid alarm index " << num << " must be between 0 and 6." << std::endl;
       return -1;
     }
+
+    Dawn::Alarm alarm;
+    alarm.dowFlags = string2dayofweek(parser.get_values("days").front().c_str());
+    alarm.time = QTime::fromString(parser.get_values("time").front().c_str());
+
+    DeviceSettings devices;
+    if (! devices.hasDevices()) {
+      std::cerr << "No device configured. Call 'dawncmd new-device ...'." << std::endl;
+      return -1;
+    }
+    QString device_name = parser.get_values("devname").front().c_str();
+    if (! devices.hasDevice(device_name)) {
+      std::cerr << "No device named '" << device_name.toStdString() << "' known." << std::endl;
+      return -1;
+    }
+
+    QSerialPort *port = connect(devices.device(device_name).device());
+    if (0 == port) {
+      std::cerr << "Failed to access device." << std::endl;
+      return -1;
+    }
+
+    Dawn dawn(port, (const uint8_t *)devices.device(device_name).secret().data());
+    if (! dawn.isValid()) {
+      std::cerr << "Failed to access device." << std::endl;
+      return -1;
+    }
+
+    while (! dawn.setAlarm(num, alarm)) { }
   } else if (parser.has_keyword("scan")) {
     DawnDiscover discover;
     if (! discover.start()) {
