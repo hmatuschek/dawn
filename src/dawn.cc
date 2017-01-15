@@ -29,7 +29,7 @@ typedef enum {
 } Commands;
 
 
-Dawn::Dawn(QIODevice *port, const unsigned char *secret, QObject *parent)
+Dawn::Dawn(QSerialPort *port, const unsigned char *secret, QObject *parent)
   : QObject(parent), _port(port), _valid(true)
 {
   _port->setParent(this);
@@ -355,7 +355,7 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
 
 bool
 Dawn::_recover() {
-  uint8_t buffer[32]; _read(buffer, 32);
+  _port->clear(QSerialPort::AllDirections);
   LogMessage msg(LOG_INFO); msg << "IO: Recover."; Logger::get().log(msg);
   // Wait a short time
   usleep(100000);
