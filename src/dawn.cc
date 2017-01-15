@@ -355,10 +355,11 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
 
 bool
 Dawn::_recover() {
-  _port->clear(QSerialPort::AllDirections);
   LogMessage msg(LOG_INFO); msg << "IO: Recover."; Logger::get().log(msg);
+  _port->flush();
   // Wait a short time
   usleep(100000);
+  _port->clear(QSerialPort::AllDirections);
   // try to read nonce
   return readNonce();
 }
