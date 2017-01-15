@@ -54,7 +54,7 @@ DawnDiscover::start() {
   }
   std::cerr << "Scan for devices..." << std::endl;
   foreach (QBluetoothDeviceInfo info, _discovery.discoveredDevices()) {
-    qDebug() << info.address() << ": " << info.name();
+    std::cerr << info.address().toString().toStdString() << ": " << info.name().toStdString();
   }
   _discovery.start();
   return true;
