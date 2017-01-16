@@ -15,6 +15,7 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QDebug>
 
 
 Application::Application(Dawn &dawn, int &argc, char *argv[])
@@ -37,8 +38,9 @@ Application::Application(Dawn &dawn, int &argc, char *argv[])
 void
 Application::onNewRequest(QFCgiRequest *request) {
   QUrl requestURI = QUrl::fromEncoded(request->getParam("REQUEST_URI").toUtf8());
+  qDebug() << requestURI;
   QUrlQuery query(requestURI);
-
+  qDebug() << query.toString();
   QJsonDocument doc;
 
   if (query.hasQueryItem("q") && ("list" == query.queryItemValue("q")))
