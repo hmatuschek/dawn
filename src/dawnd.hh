@@ -3,7 +3,9 @@
 
 #include "dawn.hh"
 #include "qfcgi.h"
+#include <QUrlQuery>
 #include <QCoreApplication>
+#include <QJsonDocument>
 
 
 class Application: public QCoreApplication
@@ -15,7 +17,8 @@ public:
 
 private slots:
   void onNewRequest(QFCgiRequest *request);
-
+  QJsonDocument onListAlarm(const QUrlQuery &query, QFCgiRequest *request);
+  QJsonDocument onGetTemp(const QUrlQuery &query, QFCgiRequest *request);
 protected:
   Dawn &_dawn;
   QFCgi *_fcgi;

@@ -85,4 +85,4 @@ add_executable(dawnd ${dawnd_SOURCES} ${qfcgi_SOURCES} ${dawnd_MOC_SOURCES} ${da
   ${dawnd_QM_FILES})
 target_link_libraries(dawnd libdawn ${LIBS})
 
-install(TARGETS dawncmd DESTINATION bin/)
+install(TARGETS dawnd DESTINATION bin/)
