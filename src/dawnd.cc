@@ -55,8 +55,7 @@ int main(int argc, char *argv[]) {
   }
 
   QString portname = QString::fromStdString(parser.get_option("device").front());
-  QByteArray secret = QByteArray::fromHex(
-        QByteArray::fromStdString(parser.get_option("secret").front()));
+  QByteArray secret = QByteArray::fromHex(parser.get_option("secret").front().c_str());
 
   QSerialPort *port = new QSerialPort(portname);
   if (0 == port) {
