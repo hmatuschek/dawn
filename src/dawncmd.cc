@@ -89,7 +89,7 @@ connect(const QString &devname, bool initAlarm=true) {
     Logger::get().log(msg);
     return 0;
   }
-  if (! port->setBaudRate(QSerialPort::Baud38400)) {
+  if (! port->setBaudRate(QSerialPort::Baud9600)) {
     LogMessage msg(LOG_ERROR);
     msg << "IO: Can not set baudrate.";
     Logger::get().log(msg);
