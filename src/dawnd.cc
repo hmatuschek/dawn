@@ -32,7 +32,7 @@ void
 Application::onNewRequest(QFCgiRequest *request) {
     QTextStream ts(request->getOut());
 
-    ts << "Content-Type: plain/text\r\n";
+    ts << "Content-Type: text/plain\r\n";
     ts << "\r\n";
     ts << QString("Hello from %1\n").arg(this->applicationName());
     ts << "This is what I received:\n";
