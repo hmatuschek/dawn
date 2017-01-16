@@ -36,6 +36,7 @@ Application::onNewRequest(QFCgiRequest *request) {
     ts << "\r\n";
     ts << QString("Hello from %1\n").arg(this->applicationName());
     ts << "This is what I received:\n";
+    ts << "QS:" << request->getParam("QUERY_STRING") << "\n";
     foreach (QString key, request->getParams()) {
       ts << QString("%1: %2\n").arg(key).arg(request->getParam(key));
     }
