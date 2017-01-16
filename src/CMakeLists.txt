@@ -6,7 +6,8 @@ set(libdawn_SOURCES siphash24.c logger.cc option_parser.cc devicesettings.cc
 set(libdawn_MOC_HEADERS
     dawn.hh logmessagetable.hh dawndiscover.hh)
 qt5_wrap_cpp(libdawn_MOC_SOURCES ${libdawn_MOC_HEADERS})
-set(libdawn_HEADERS siphash.h logger.hh option_parser.hh  devicesettings.hh ${libdawn_MOC_HEADERS} )
+set(libdawn_HEADERS ${qfcgi_HEADERS} siphash.h logger.hh option_parser.hh  devicesettings.hh
+    ${libdawn_MOC_HEADERS})
 
 add_library(libdawn STATIC ${libdawn_SOURCES} ${libdawn_MOC_SOURCES})
 set_target_properties(libdawn PROPERTIES OUTPUT_NAME "dawn")
@@ -62,5 +63,26 @@ set(dawn_cmd_HEADERS ${dawn_MOC_HEADERS})
 add_executable(dawncmd ${dawn_cmd_SOURCES} ${dawn_cmd_MOC_SOURCES} ${dawn_cmd_RCC_SOURCES}
   ${dawn_cmd_QM_FILES})
 target_link_libraries(dawncmd libdawn ${LIBS})
+
+install(TARGETS dawncmd DESTINATION bin/)
+
+
+#
+# Build FCGI application
+#
+set(qfcgi_SOURCES qfcgi/connection.cpp qfcgi/fcgi.cpp qfcgi/fdbuilder.cpp qfcgi/localbuilder.cpp
+    qfcgi/record.cpp qfcgi/request.cpp qfcgi/stream.cpp qfcgi/tcpbuilder.cpp)
+set(qfcgi_MOC_HEADERS qfcgi/connection.h qfcgi/fcgi.h qfcgi/fdbuilder.h qfcgi/localbuilder.h
+    qfcgi/request.h qfcgi/stream.h qfcgi/tcpbuilder.h qfcgi/builder.h)
+set(qfcgi_HEADERS qfcgi.h qfcgi/record.h)
+
+set(dawnd_SOURCES dawnd.cc)
+set(dawnd_MOC_HEADERS dawnd.hh)
+set(dawnd_HEADERS ${dawnd_MOC_HEADERS})
+
+qt5_wrap_cpp(dawnd_MOC_SOURCES ${dawnd_MOC_HEADERS} ${qfcgi_MOC_HEADERS})
+add_executable(dawnd ${dawnd_SOURCES} ${qfcgi_SOURCES} ${dawnd_MOC_SOURCES} ${dawnd_RCC_SOURCES}
+  ${dawnd_QM_FILES})
+target_link_libraries(dawnd libdawn ${LIBS})
 
 install(TARGETS dawncmd DESTINATION bin/)

@@ -9,6 +9,7 @@ include(InstallHeadersWithDirectory)
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5SerialPort REQUIRED)
+find_package(Qt5Network REQUIRED)
 find_package(Qt5Bluetooth REQUIRED)
 find_package(Qt5LinguistTools REQUIRED)
 if(ENABLE_FIRMWARE)
@@ -21,11 +22,13 @@ INCLUDE_DIRECTORIES(${Qt5Declarative_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${Qt5Widgets_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${Qt5Bluetooth_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${Qt5SerialPort_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${Qt5Network_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src)
 
 LINK_DIRECTORIES(${PROJECT_BINARY_DIR}/src)
-set(LIBS ${Qt5Core_LIBRARIES} ${Qt5Widgets_LIBRARIES} ${Qt5SerialPort_LIBRARIES} ${Qt5Bluetooth_LIBRARIES})
+set(LIBS ${Qt5Core_LIBRARIES} ${Qt5Widgets_LIBRARIES} ${Qt5SerialPort_LIBRARIES} ${Qt5Bluetooth_LIBRARIES}
+  ${Qt5Network_LIBRARIES})
 
 # Set compiler flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS} -Wall")

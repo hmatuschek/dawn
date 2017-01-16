@@ -87,42 +87,55 @@ connect(const QString &devname, bool initAlarm=true) {
     LogMessage msg(LOG_ERROR);
     msg << "IO Error: Can not open device " << portname.toStdString();
     Logger::get().log(msg);
+    delete port;
     return 0;
   }
   if (! port->setBaudRate(QSerialPort::Baud9600)) {
     LogMessage msg(LOG_ERROR);
     msg << "IO: Can not set baudrate.";
     Logger::get().log(msg);
+    delete port;
     return 0;
   }
   if (! port->setDataBits(QSerialPort::Data8)) {
     LogMessage msg(LOG_ERROR);
     msg << "IO: Can not set data bits.";
     Logger::get().log(msg);
+    delete port;
     return 0;
   }
   if (! port->setParity(QSerialPort::NoParity)) {
     LogMessage msg(LOG_ERROR);
     msg << "IO: Can not set parity.";
     Logger::get().log(msg);
+    delete port;
     return 0;
   }
   if (! port->setStopBits(QSerialPort::OneStop)) {
     LogMessage msg(LOG_ERROR);
     msg << "IO: Can not set stop bits.";
     Logger::get().log(msg);
+    delete port;
     return 0;
   }
   if (! port->setFlowControl(QSerialPort::HardwareControl)) {
     LogMessage msg(LOG_ERROR);
     msg << "IO: Can not set stop bits.";
     Logger::get().log(msg);
+    delete port;
     return 0;
   }
 
   Dawn *dawn = new Dawn(port, (const uint8_t *)devices.device(devname).secret().data(), initAlarm);
+  if (0 == dawn) {
+    std::cerr << "Failed to access device." << std::endl;
+    delete port;
+    return 0;
+  }
+
   if (! dawn->isValid()) {
     std::cerr << "Failed to access device." << std::endl;
+    delete dawn;
     return 0;
   }
 
@@ -173,34 +186,50 @@ int main(int argc, char *argv[])
 
     DeviceSettings devices;
     devices.add(name, device, secret);
-  } else if (parser.has_keyword("on")) {
+    return 0;
+  }
+
+  if (parser.has_keyword("on")) {
     Dawn *dawn = connect(parser.get_values("devname").front().c_str(), false);
     if (0 == dawn)
       return -1;
-    dawn->setValue(0xffff);
+    bool success = false;
+    for (int i=0; (i<5)&&(!success); i++)
+      success = dawn->setValue(0xffff);
     delete dawn;
-  } else if (parser.has_keyword("off")) {
+    if (success) return 0;
+    return -1;
+  }
+
+  if (parser.has_keyword("off")) {
     Dawn *dawn = connect(parser.get_values("devname").front().c_str(), false);
     if (0 == dawn)
       return -1;
-    dawn->setValue(0);
+    bool success = false;
+    for (int i=0; (i<5)&&(!success); i++)
+      success = dawn->setValue(0x0000);
     delete dawn;
-  } else if (parser.has_keyword("info")) {
+    if (success) return 0;
+    return -1;
+  }
+
+  if (parser.has_keyword("info")) {
     Dawn *dawn = connect(parser.get_values("devname").front().c_str(), true);
     if (0 == dawn)
       return -1;
 
+    bool success = false;
     double core, amb;
-    if(! dawn->getTemp(core, amb)) {
-      std::cerr << "Failed to get device temperatures." << std::endl;
+    for (int i=0; (i<5)&&(!success); i++)
+      success = dawn->getTemp(core, amb);
+    if (!success)
       return -1;
-    }
 
-    QDateTime time = dawn->time();
-    if (! time.isValid()) {
-      std::cerr << "Failed to get device time." << std::endl;
+    QDateTime time = dawn->time(&success);
+    for (int i=0; (i<5)&&(!success); i++)
+      time = dawn->time(&success);
+    if (!success)
       return -1;
-    }
 
     std::cout << "Device info for '" << parser.get_values("devname").front() << "'" << std::endl
               << " temperature (core/amb): " << core << "/" << amb << std::endl
@@ -211,20 +240,27 @@ int main(int argc, char *argv[])
     }
 
     delete dawn;
-  } else if (parser.has_keyword("temp")) {
+    return 0;
+  }
+
+  if (parser.has_keyword("temp")) {
     Dawn *dawn = connect(parser.get_values("devname").front().c_str(), false);
     if (0 == dawn)
       return -1;
-    double core, amb;
+
     bool success = false;
-    for (int i=0; (i<5) && (!success); i++) { success = dawn->getTemp(core, amb); }
+    double core, amb;
+    for (int i=0; (i<5) && (!success); i++)
+      success = dawn->getTemp(core, amb);
     if (success) {
       std::cout << "Core temp: " << core << "C" << std::endl
                 << "Amb. temp: " << amb << "C" << std::endl;
       return 0;
     }
     return -1;
-  } else if (parser.has_keyword("setalarm")) {
+  }
+
+  if (parser.has_keyword("setalarm")) {
     int num = atoi(parser.get_values("num").front().c_str());
     if (num<0) {
       std::cerr << "Invalid alarm index " << num << " must be >= 0." << std::endl;
@@ -243,23 +279,33 @@ int main(int argc, char *argv[])
     if (0 == dawn)
       return -1;
 
-    while (! dawn->setAlarm(num, alarm)) { }
-
+    bool success = false;
+    for (int i=0; (i<5)&&(!success); i++)
+      success = dawn->setAlarm(num, alarm);
     delete dawn;
-  } else if (parser.has_keyword("settime")) {
+
+    if (! success)
+      return -1;
+    return 0;
+  }
+
+  if (parser.has_keyword("settime")) {
     Dawn *dawn = connect(parser.get_values("devname").front().c_str(), false);
     if (0 == dawn)
       return -1;
-    while (! dawn->setTime()) { }
-  } else if (parser.has_keyword("scan")) {
-    DawnDiscover discover;
-    if (! discover.start()) {
-      std::cerr << "Oops..." <<std::endl;
-      return -1;
-    }
-    app.exec();
+    bool success = false;
+    for (int i=0; (i<5)&&(!success); i++)
+      success = dawn->setTime();
   }
 
-  return 0;
+  if (parser.has_keyword("scan")) {
+    DawnDiscover discover;
+    if (! discover.start())
+      return -1;
+    app.exec();
+    return 0;
+  }
+
+  return -1;
 }
 
