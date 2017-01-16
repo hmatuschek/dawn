@@ -46,7 +46,7 @@ Application::onNewRequest(QFCgiRequest *request) {
   if (query.hasQueryItem("q") && ("list" == query.queryItemValue("q")))
     doc = onListAlarm(query, request);
   else if (query.hasQueryItem("q") && ("temp" == query.queryItemValue("q")))
-    doc = onListAlarm(query, request);
+    doc = onGetTemp(query, request);
 
   QByteArray buffer = doc.toJson();
   QTextStream ts(request->getOut());
