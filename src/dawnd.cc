@@ -46,6 +46,8 @@ Application::onNewRequest(QFCgiRequest *request) {
 
 
 int main(int argc, char *argv[]) {
+  Logger::get().addHandler(new StreamLogHandler(LOG_DEBUG, std::cerr));
+
   Parser parser;
   parser.setGrammar( (parser.Option("device"), parser.Option("secret")) );
 
