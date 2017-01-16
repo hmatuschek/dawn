@@ -17,8 +17,14 @@ public:
 
 private slots:
   void onNewRequest(QFCgiRequest *request);
-  QJsonDocument onListAlarm(const QUrlQuery &query, QFCgiRequest *request);
-  QJsonDocument onGetTemp(const QUrlQuery &query, QFCgiRequest *request);
+  QJsonDocument onListAlarm(const QUrlQuery &query);
+  QJsonDocument onSetAlarm(const QUrlQuery &query);
+  QJsonDocument onGetTemp(const QUrlQuery &query);
+  QJsonDocument onGetTime(const QUrlQuery &query);
+  QJsonDocument onSetTime(const QUrlQuery &query);
+  QJsonDocument onGetValue(const QUrlQuery &query);
+  QJsonDocument onSetValue(const QUrlQuery &query);
+
 protected:
   Dawn &_dawn;
   QFCgi *_fcgi;

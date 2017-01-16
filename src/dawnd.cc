@@ -34,7 +34,6 @@ Application::Application(Dawn &dawn, int &argc, char *argv[])
     quit();
 }
 
-
 void
 Application::onNewRequest(QFCgiRequest *request) {
   QUrl requestURI = QUrl::fromEncoded(request->getParam("REQUEST_URI").toUtf8());
@@ -44,9 +43,9 @@ Application::onNewRequest(QFCgiRequest *request) {
   QJsonDocument doc;
 
   if (query.hasQueryItem("q") && ("list" == query.queryItemValue("q")))
-    doc = onListAlarm(query, request);
+    doc = onListAlarm(query);
   else if (query.hasQueryItem("q") && ("temp" == query.queryItemValue("q")))
-    doc = onGetTemp(query, request);
+    doc = onGetTemp(query);
 
   QByteArray buffer = doc.toJson();
   QTextStream ts(request->getOut());
@@ -60,7 +59,7 @@ Application::onNewRequest(QFCgiRequest *request) {
 }
 
 QJsonDocument
-Application::onListAlarm(const QUrlQuery &query, QFCgiRequest *request) {
+Application::onListAlarm(const QUrlQuery &query) {
   QJsonArray lst;
   for (size_t i=0; i<_dawn.numAlarms(); i++) {
     QJsonObject alarm;
@@ -73,19 +72,95 @@ Application::onListAlarm(const QUrlQuery &query, QFCgiRequest *request) {
 }
 
 QJsonDocument
-Application::onGetTemp(const QUrlQuery &query, QFCgiRequest *request) {
+Application::onSetAlarm(const QUrlQuery &query) {
+  if ((! query.hasQueryItem("idx")) || (! query.hasQueryItem("dow")) || (! query.hasQueryItem("time")))
+    return QJsonDocument();
+
+  bool ok; Dawn::Alarm alarm;
+  int idx = query.queryItemValue("idx").toInt(&ok);
+  if (!ok) return QJsonDocument();
+
+  alarm.dowFlags = (query.queryItemValue("idx").toInt(&ok) & 0b1111111);
+  if (!ok) return QJsonDocument();
+
+  alarm.time = QTime::fromString(query.queryItemValue("time"), "hh:mm");
+  if (! alarm.time.isValid()) return QJsonDocument();
+
+  ok = false;
+  for (int i=0; (i<5) && (!ok); i++)
+    ok = _dawn.setAlarm(idx, alarm);
+  if (! ok) return QJsonDocument();
+
+  return QJsonDocument(QJsonObject());
+}
+
+QJsonDocument
+Application::onGetTemp(const QUrlQuery &query) {
   double core, amb;
   bool success = false;
   for (int i=0; (i<5) && (! success); i++)
     success = _dawn.getTemp(core, amb);
 
-  if (success) {
-    QJsonObject res; res.insert("temp", amb);
-    return QJsonDocument(res);
+  if (! success)
+    return QJsonDocument();
+
+  QJsonObject res; res.insert("temp", amb);
+  return QJsonDocument(res);
+}
+
+QJsonDocument
+Application::onGetTime(const QUrlQuery &query) {
+  QDateTime time;
+  bool ok = false;
+  for (int i=0; (i<5) && (! ok); i++)
+    time = _dawn.time(&ok);
+  if (! ok) return QJsonDocument();
+
+  QJsonObject res;
+  res.insert("time", time.toString("yyyy-MM-dd hh:mm"));
+  return QJsonDocument(res);
+}
+
+QJsonDocument
+Application::onSetTime(const QUrlQuery &query) {
+  QDateTime time = QDateTime::currentDateTime();
+  if (query.hasQueryItem("time")) {
+    QDateTime tmp = QDateTime::fromString(query.queryItemValue("time"), "yyyy-MM-dd hh:mm");
+    if (tmp.isValid())
+      time = tmp;
   }
 
-  return QJsonDocument();
+  bool ok = false;
+  for (int i=0; (i<5) && (! ok); i++)
+    ok = _dawn.setTime(time);
+  if (! ok) return QJsonDocument();
+
+  return QJsonDocument(QJsonObject());
 }
+
+QJsonDocument
+Application::onGetValue(const QUrlQuery &query) {
+  uint16_t value; bool ok = false;
+  for (int i=0; (i<5) && (! ok); i++)
+    value = _dawn.value(&ok);
+  if (! ok) return QJsonDocument();
+
+  QJsonObject res; res.insert("value", value);
+  return QJsonDocument(res);
+}
+
+QJsonDocument
+Application::onSetValue(const QUrlQuery &query) {
+  if (! query.hasQueryItem("value"))
+    return QJsonDocument();
+  uint16_t value = query.queryItemValue("value").toUInt();
+  bool ok = false;
+  for (int i=0; (i<5) && (! ok); i++)
+    ok = _dawn.setValue(value);
+  if (! ok) return QJsonDocument();
+  return QJsonDocument(QJsonObject());
+}
+
 
 
 static void quit_handler(int signal) {
