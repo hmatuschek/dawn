@@ -10,6 +10,12 @@
 #include "dawndiscover.hh"
 #include <QLoggingCategory>
 #include <signal.h>
+#include <QUrl>
+#include <QUrlQuery>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+
 
 Application::Application(Dawn &dawn, int &argc, char *argv[])
   : QCoreApplication(argc, argv), _dawn(dawn), _fcgi(0)
@@ -30,21 +36,55 @@ Application::Application(Dawn &dawn, int &argc, char *argv[])
 
 void
 Application::onNewRequest(QFCgiRequest *request) {
-    QTextStream ts(request->getOut());
+  QUrl requestURI = QUrl::fromEncoded(request->getParam("REQUEST_URI").toUtf8());
+  QUrlQuery query(requestURI);
 
-    ts << "Content-Type: text/plain\r\n";
-    ts << "\r\n";
-    ts << QString("Hello from %1\n").arg(this->applicationName());
-    ts << "This is what I received:\n";
-    ts << "QS:" << request->getParam("QUERY_STRING") << "\n";
-    foreach (QString key, request->getParams()) {
-      ts << QString("%1: %2\n").arg(key).arg(request->getParam(key));
-    }
-    ts.flush();
+  QJsonDocument doc;
+  if (query.hasQueryItem("q") && ("list" == query.queryItemValue("q")))
+    doc = onListAlarm(query, request);
+  if (query.hasQueryItem("q") && ("temp" == query.queryItemValue("q")))
+    doc = onListAlarm(query, request);
+  else
+    doc = onListAlarm(query, request);
 
-    request->endRequest(0);
+  QByteArray buffer = doc.toJson();
+  QTextStream ts(request->getOut());
+  ts << "Content-Type: application/json\r\n"
+     << "Content-Length: " << buffer.size() << "\r\n"
+     << "\r\n"
+     << buffer;
+  ts.flush();
+
+  request->endRequest(0);
+}
+
+QJsonDocument
+Application::onListAlarm(const QUrlQuery &query, QFCgiRequest *request) {
+  QJsonArray lst;
+  for (size_t i=0; i<_dawn.numAlarms(); i++) {
+    QJsonObject alarm;
+    alarm.insert("dayofweek", int(_dawn.alarm(i).dowFlags));
+    alarm.insert("time", _dawn.alarm(i).time.toString("hh:mm"));
+    lst.append(alarm);
   }
 
+  return QJsonDocument(lst);
+}
+
+QJsonDocument
+Application::onGetTemp(const QUrlQuery &query, QFCgiRequest *request) {
+  double core, amb;
+  bool success = false;
+  for (int i=0; (i<5) && (! success); i++)
+    success = _dawn.getTemp(core, amb);
+
+  if (success) {
+    QJsonObject res; res.insert("temp", amb);
+    return QJsonDocument(res);
+  }
+
+  return QJsonDocument();
+}
 
 
 static void quit_handler(int signal) {
