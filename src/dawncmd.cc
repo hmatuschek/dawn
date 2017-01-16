@@ -146,9 +146,11 @@ int main(int argc, char *argv[])
   RuleInterface &on_off_cmd = ((parser.Keyword("on") | parser.Keyword("off")), parser.Value("devname"));
   RuleInterface &set_alarm  = (parser.Keyword("setalarm"), parser.Value("num"), parser.Value("days"), parser.Value("time"), parser.Value("devname"));
   RuleInterface &set_time = (parser.Keyword("settime"), parser.Value("devname"));
+  RuleInterface &get_temp = (parser.Keyword("temp"), parser.Value("devname"));
   RuleInterface &scan = (parser.Keyword("scan"));
   RuleInterface &options  = (parser.Option("log"));
-  parser.setGrammar( (parser.opt(options), (scan | new_device | device_info | on_off_cmd | set_alarm | set_time)) );
+  parser.setGrammar(
+        (parser.opt(options), (scan | new_device | device_info | on_off_cmd | set_alarm | set_time | get_temp)) );
 
   if (! parser.parse((const char **)argv, argc)) {
     std::cout << "Usage " << parser.format_help("dawncmd") << std::endl;
@@ -173,10 +175,8 @@ int main(int argc, char *argv[])
     devices.add(name, device, secret);
   } else if (parser.has_keyword("on")) {
     Dawn *dawn = connect(parser.get_values("devname").front().c_str(), false);
-    if (0 == dawn) {
-      std::cerr << "Failed to access device " << parser.get_values("devname").front() << "." << std::endl;
+    if (0 == dawn)
       return -1;
-    }
     dawn->setValue(0xffff);
     delete dawn;
   } else if (parser.has_keyword("off")) {
@@ -211,6 +211,19 @@ int main(int argc, char *argv[])
     }
 
     delete dawn;
+  } else if (parser.has_keyword("temp")) {
+    Dawn *dawn = connect(parser.get_values("devname").front().c_str(), false);
+    if (0 == dawn)
+      return -1;
+    double core, amb;
+    bool success = false;
+    for (int i=0; (i<5) && (!success); i++) { success = dawn->getTemp(core, amb); }
+    if (success) {
+      std::cout << "Core temp: " << core << "C" << std::endl
+                << "Amb. temp: " << amb << "C" << std::endl;
+      return 0;
+    }
+    return -1;
   } else if (parser.has_keyword("setalarm")) {
     int num = atoi(parser.get_values("num").front().c_str());
     if (num<0) {
