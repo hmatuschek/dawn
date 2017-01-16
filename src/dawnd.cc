@@ -40,11 +40,10 @@ Application::onNewRequest(QFCgiRequest *request) {
   QUrlQuery query(requestURI);
 
   QJsonDocument doc;
+
   if (query.hasQueryItem("q") && ("list" == query.queryItemValue("q")))
     doc = onListAlarm(query, request);
-  if (query.hasQueryItem("q") && ("temp" == query.queryItemValue("q")))
-    doc = onListAlarm(query, request);
-  else
+  else if (query.hasQueryItem("q") && ("temp" == query.queryItemValue("q")))
     doc = onListAlarm(query, request);
 
   QByteArray buffer = doc.toJson();
