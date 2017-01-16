@@ -44,8 +44,18 @@ Application::onNewRequest(QFCgiRequest *request) {
 
   if (query.hasQueryItem("q") && ("list" == query.queryItemValue("q")))
     doc = onListAlarm(query);
+  if (query.hasQueryItem("q") && ("setalarm" == query.queryItemValue("q")))
+    doc = onSetAlarm(query);
   else if (query.hasQueryItem("q") && ("temp" == query.queryItemValue("q")))
     doc = onGetTemp(query);
+  else if (query.hasQueryItem("q") && ("time" == query.queryItemValue("q")))
+    doc = onGetTime(query);
+  else if (query.hasQueryItem("q") && ("settime" == query.queryItemValue("q")))
+    doc = onSetTime(query);
+  else if (query.hasQueryItem("q") && ("value" == query.queryItemValue("q")))
+    doc = onGetValue(query);
+  else if (query.hasQueryItem("q") && ("setvalue" == query.queryItemValue("q")))
+    doc = onSetValue(query);
 
   QByteArray buffer = doc.toJson();
   QTextStream ts(request->getOut());
