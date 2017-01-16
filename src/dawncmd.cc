@@ -120,7 +120,7 @@ connect(const QString &devname, bool initAlarm=true) {
     return 0;
   }
 
-  Dawn *dawn = new Dawn(port, (const uint8_t *)devices.device(devname).secret().data(), false);
+  Dawn *dawn = new Dawn(port, (const uint8_t *)devices.device(devname).secret().data(), initAlarm);
   if (! dawn->isValid()) {
     std::cerr << "Failed to access device." << std::endl;
     return 0;
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
     dawn->setValue(0);
     delete dawn;
   } else if (parser.has_keyword("info")) {
-    Dawn *dawn = connect(parser.get_values("devname").front().c_str());
+    Dawn *dawn = connect(parser.get_values("devname").front().c_str(), true);
     if (0 == dawn)
       return -1;
 
