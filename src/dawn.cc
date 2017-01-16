@@ -49,8 +49,8 @@ Dawn::Dawn(QSerialPort *port, const unsigned char *secret, bool initAlarm, QObje
   }
 
   // get number of alarm settings
-  size_t nAlarm = readNumAlarms(&_valid);
-  if (! _valid) { return; }
+  size_t nAlarm = 7; //readNumAlarms(&_valid);
+  //if (! _valid) { return; }
 
   _alarms.resize(nAlarm);
   if (initAlarm) {
