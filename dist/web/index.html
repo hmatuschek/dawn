@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dawn</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+  <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+  <style>
+    /* Hide the number input */
+    .full-width-slider input {
+      display: none;
+    }
+    .full-width-slider .ui-slider-track {
+      margin-left: 15px;
+    }
+  </style>
+
+  <script>
+   function formatDayOfWeek(num) {
+     if (65 == num)  return "weekend";
+     if (62 == num)  return "work days";
+     if (127 == num) return "always";
+     if (0 == num) return "never";
+     var res = [];
+     if (2  & num) res.append("monday");
+     if (4  & num) res.append("tuesday");
+     if (8  & num) res.append("wednesday");
+     if (16 & num) res.append("thursday");
+     if (32 & num) res.append("friday");
+     if (62 & num) res.append("saturday");
+     if (1  & num) res.append("sunday");
+     return res.join(", ");
+   }
+
+   function formatAlarm(idx, alarm) {
+     return '<li id="#alarm' + idx + '"><a href="#" id="alink' + idx + '">'
+       + formatDayOfWeek(alarm.dayofweek) + ' at ' + alarm.time + '</a></li>';
+   }
+
+   function saveAlarm(event) {
+     var dayofweek = 0;
+     if ("on" == $("#sun").val()) dayofweek |=  1;
+     if ("on" == $("#mon").val()) dayofweek |=  2;
+     if ("on" == $("#tue").val()) dayofweek |=  4;
+     if ("on" == $("#wed").val()) dayofweek |=  8;
+     if ("on" == $("#thu").val()) dayofweek |= 16;
+     if ("on" == $("#fri").val()) dayofweek |= 32;
+     if ("on" == $("#sat").val()) dayofweek |= 64;
+     var time = $("#start").val();
+     $.getJSON("https://boot.ddnss.de/dawn/api", {q:'setalarm', idx:event.data.idx,
+               dow:dayofweek, time:time}).done(function (resp) {
+       $.mobile.changePage("#page");
+       updateAlarmList();
+     });
+   }
+
+   function showSetAlarm(event) {
+    if (1 & event.data.dayofweek) $("#sun").val("on")
+    else $("#sun").val("off")
+    if (2 & event.data.dayofweek) $("#mon").val("on")
+    else $("#mon").val("off")
+    if (4 & event.data.dayofweek) $("#tue").val("on")
+    else $("#tue").val("off")
+    if (8 & event.data.dayofweek) $("#wed").val("on")
+    else $("#wed").val("off")
+    if (16 & event.data.dayofweek) $("#thu").val("on")
+    else $("#thu").val("off")
+    if (32 & event.data.dayofweek) $("#fri").val("on")
+    else $("#fri").val("off")
+    if (64 & event.data.dayofweek) $("#sat").val("on")
+    else $("#sat").val("off")
+    $("#start").val(event.data.time);
+
+    $.mobile.changePage("#setalarm", "pop", true, true);
+
+    $("#sun").slider("refresh");
+    $("#mon").slider("refresh");
+    $("#tue").slider("refresh");
+    $("#wed").slider("refresh");
+    $("#thu").slider("refresh");
+    $("#fri").slider("refresh");
+    $("#sat").slider("refresh");
+
+    $("#savealarm").click({idx:event.data.idx}, saveAlarm);
+   }
+
+   function updateAlarmList() {
+     $("#alarm").empty();
+     // JSON request to get list of alarms
+     $.getJSON("https://boot.ddnss.de/dawn/api", {q:'list'}).done(function(resp) {
+       for (i=0; i<resp.length; i++) {
+         $("#alarm").append(formatAlarm(i, resp[i]));
+         $("#alink"+i).click({idx:i, dayofweek:resp[i].dayofweek, time:resp[i].time}, showSetAlarm);
+       }
+       $("#alarm").listview("refresh");
+     });
+   }
+
+   $( document ).ready(function() {
+    // Update list of alarm settings
+    updateAlarmList();
+
+    // JSON request to get the current value
+    $.getJSON("https://boot.ddnss.de/dawn/api", {q:'value'}).done(function(resp) {
+      $("#value").val(resp.value).slider("refresh")
+    });
+
+    $.getJSON("https://boot.ddnss.de/dawn/api", {q:'time'}).done(function(resp)  {
+      $("#time").empty();
+      $("#time").append(resp.time);
+    });
+
+    $.getJSON("https://boot.ddnss.de/dawn/api", {q:'temp'}).done(function(resp)  {
+      $("#temp").empty();
+      $("#temp").append(Math.round(resp.temp*10)/10 + "&deg;C");
+    });
+
+    $("#value").on('change', function () {
+      $.getJSON("https://boot.ddnss.de/dawn/api", {q:'setvalue', value: $("#value").val()});
+    });
+
+   });
+  </script>
+</head>
+
+<body>
+ <div data-role="page" id="main">
+  <div data-role="header">
+   <form class="full-width-slider">
+    <input name="slider-12" id="value" min="0" max="65535" value="0" type="range"
+           data-highlight="true">
+   </form>
+  </div>
+  <div role="main" class="ui-content">
+   <ul data-role="listview" data-inset="true" id="alarm"></ul>
+  </div>
+  <div data-role="footer">
+  <span id="time"></span>
+  <span id="temp"></span>
+  </div>
+ </div>
+
+ <div data-role="page" id="setalarm" data-dialog="true" data-close-btn="right">
+  <div data-role="header">
+   <h1>Set alarm</h1>
+  </div>
+  <div role="main" class="ui-content">
+   <form>
+    <div class="ui-field-contain">
+     <label for="mon">Monday</label>
+     <select name="mon" id="mon" data-role="slider" data-mini="true">
+      <option value="off">Off</option>
+      <option value="on">On</option>
+     </select>
+    </div>
+    <div class="ui-field-contain">
+     <label for="tue">Tuesday</label>
+     <select name="tue" id="tue" data-role="slider" data-mini="true">
+      <option value="off">Off</option>
+      <option value="on">On</option>
+     </select>
+    </div>
+    <div class="ui-field-contain">
+     <label for="mon">Wednesday</label>
+     <select name="wed" id="wed" data-role="slider" data-mini="true">
+      <option value="off">Off</option>
+      <option value="on">On</option>
+     </select>
+    </div>
+    <div class="ui-field-contain">
+     <label for="mon">Thursday</label>
+     <select name="thu" id="thu" data-role="slider" data-mini="true">
+      <option value="off">Off</option>
+      <option value="on">On</option>
+     </select>
+    </div>
+    <div class="ui-field-contain">
+     <label for="mon">Friday</label>
+     <select name="fri" id="fri" data-role="slider" data-mini="true">
+      <option value="off">Off</option>
+      <option value="on">On</option>
+     </select>
+    </div>
+    <div class="ui-field-contain">
+     <label for="mon">Saturday</label>
+     <select name="sat" id="sat" data-role="slider" data-mini="true">
+      <option value="off">Off</option>
+      <option value="on">On</option>
+     </select>
+    </div>
+    <div class="ui-field-contain">
+     <label for="mon">Sunday</label>
+     <select name="sun" id="sun" data-role="slider" data-mini="true">
+      <option value="off">Off</option>
+      <option value="on">On</option>
+     </select>
+    </div>
+    <div class="ui-field-contain">
+     <label for="start">Time</label>
+     <input type="text" name="start" id="start" value="">
+    </div>
+   </from>
+  </div>
+  <div data-role="footer">
+   <input type="button" value="Save" id="savealarm">
+  </div>
+ </div>
+</body>
+</html>
+

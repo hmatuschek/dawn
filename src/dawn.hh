@@ -20,13 +20,13 @@ class Dawn : public QObject
 public:
   /** Defines the possible alarm selection. */
   typedef enum {
-    SUNDAY    = 0b0000001,
-    MONDAY    = 0b0000010,
-    TUESDAY   = 0b0000100,
-    WEDNESDAY = 0b0001000,
-    THURSDAY  = 0b0010000,
-    FRIDAY    = 0b0100000,
-    SATURDAY  = 0b1000000,
+    SUNDAY    = 0b0000001,  //  1
+    MONDAY    = 0b0000010,  //  2
+    TUESDAY   = 0b0000100,  //  4
+    WEDNESDAY = 0b0001000,  //  8
+    THURSDAY  = 0b0010000,  // 16
+    FRIDAY    = 0b0100000,  // 32
+    SATURDAY  = 0b1000000,  // 64
   } DayOfWeek;
 
   /** Represents an alarm configuration. */
