@@ -93,7 +93,7 @@ Application::onSetAlarm(const QUrlQuery &query) {
   alarm.dowFlags = (query.queryItemValue("dow").toInt(&ok) & 0b1111111);
   if (!ok) return QJsonDocument();
 
-  alarm.time = QTime::fromString(query.queryItemValue("time"), "hh:mm");
+  alarm.time = QTime::fromString(query.queryItemValue("time", QUrl::FullyDecoded), "hh:mm");
   if (! alarm.time.isValid()) return QJsonDocument();
 
   ok = false;
