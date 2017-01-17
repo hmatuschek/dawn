@@ -1,0 +1,6 @@
+.full-width-slider input {
+  display: none;
+}
+.full-width-slider .ui-slider-track {
+  margin-left: 15px;
+}
