@@ -240,12 +240,12 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../src/main.cc" line="89"/>
+        <location filename="../src/main.cc" line="98"/>
         <source>Can not access device.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/main.cc" line="90"/>
+        <location filename="../src/main.cc" line="99"/>
         <source>Can not access device at interface %1 (%2).</source>
         <translation type="unfinished"></translation>
     </message>

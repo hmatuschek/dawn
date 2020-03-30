@@ -41,11 +41,15 @@ Dawn::Dawn(QSerialPort *port, const unsigned char *secret, bool initAlarm, QObje
   Logger::get().addHandler(_logmessages);
 
   // First, flush the port etc...
-  if (! (_valid = _recover())) {
-    LogMessage msg(LOG_ERROR);
-    msg << "IO: Can not read nonce from device.";
+  for (int i=0; ((i<5) && !(_valid = _recover())); i++) {
+    LogMessage msg(LOG_DEBUG);
+    msg << "IO: Read nonce from device: " << _valid;
     Logger::get().log(msg);
-    return;
+  }
+  if (! _valid) {
+    LogMessage msg(LOG_ERROR);
+    msg << "IO: Cannot read nonce from device! Abort!";
+    Logger::get().log(msg);
   }
 
   // get number of alarm settings
@@ -99,7 +103,7 @@ Dawn::alarm(size_t idx) const {
 bool
 Dawn::setAlarm(size_t idx, const Alarm &alarm) {
   // Try to set alarm on device
-  uint8_t tx_buffer[5] = { SET_ALARM, idx, alarm.dowFlags, alarm.time.hour(), alarm.time.minute() };
+  uint8_t tx_buffer[5] = { SET_ALARM, uint8_t(idx), alarm.dowFlags, uint8_t(alarm.time.hour()), uint8_t(alarm.time.minute()) };
   if (! _send(tx_buffer, 5)) {
     LogMessage msg(LOG_WARNING);
     msg << "Can not set alarm: Command faild.";
@@ -133,6 +137,10 @@ Dawn::loadAlarm(size_t i, bool *ok) {
     // Add to list of alarms
     _alarms[i].dowFlags = dayofweek;
     _alarms[i].time = QTime(hour, minute);
+    LogMessage msg(LOG_DEBUG);
+    msg << "Got " << i << "-th alarm setting: dayofweek=" << int(dayofweek)
+        << ", time=" << int(hour) << ":" << int(minute) << ".";
+    Logger::get().log(msg);
     *ok = true;
   }
   return _alarms[i];
@@ -155,7 +163,7 @@ Dawn::value(bool *ok) {
 
 bool
 Dawn::setValue(uint16_t value) {
-  uint8_t tx[3] = {SET_VALUE, value, value>>8};
+  uint8_t tx[3] = {SET_VALUE, uint8_t(value), uint8_t(value>>8)};
   if (! _send(tx, 3)) {
     LogMessage msg(LOG_WARNING);
     msg << "Can not get value ("
@@ -191,8 +199,8 @@ Dawn::setTime() {
 bool
 Dawn::setTime(const QDateTime &time) {
   uint8_t tx[9] = {
-    SET_TIME, std::max(0, time.date().year()-2000), time.date().month(), time.date().day(),
-    time.date().dayOfWeek(), time.time().hour(), time.time().minute(), time.time().second()
+    SET_TIME, uint8_t(std::max(0, time.date().year()-2000)), uint8_t(time.date().month()), uint8_t(time.date().day()),
+    uint8_t(time.date().dayOfWeek()), uint8_t(time.time().hour()), uint8_t(time.time().minute()), uint8_t(time.time().second())
   };
   return _send(tx, 8);
 }
@@ -211,6 +219,9 @@ Dawn::getTemp(double &core, double &amb) {
 
   amb  = qFromBigEndian(*((uint16_t *)(rx+2)));
   amb = Rr*(1024/amb - 1)/(R25*a25) + 25;
+  LogMessage msg(LOG_DEBUG);
+  msg << "Got Temp " << amb;
+  Logger::get().log(msg);
   return true;
 }
 
@@ -321,7 +332,11 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
     LogMessage msg(LOG_WARNING);
     msg << "send(): Device returned error code (" << std::hex << int(resp_code) << ")";
     Logger::get().log(msg);
-    _recover();
+    for (int i=0; ((i<5) && !(_valid = _recover())); i++) {
+      LogMessage msg(LOG_DEBUG);
+      msg << "IO: Read nonce from device: " << _valid;
+      Logger::get().log(msg);
+    }
     return false;
   }
 
@@ -331,6 +346,11 @@ Dawn::_send(uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
       LogMessage msg(LOG_WARNING);
       msg << "send(): Can not read response";
       Logger::get().log(msg);
+      for (int i=0; ((i<5) && !(_valid = _recover())); i++) {
+        LogMessage msg(LOG_DEBUG);
+        msg << "IO: Read nonce from device: " << _valid;
+        Logger::get().log(msg);
+      }
       return false;
     }
   }

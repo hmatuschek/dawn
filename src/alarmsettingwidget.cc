@@ -102,6 +102,9 @@ AlarmSettingsWidget::AlarmSettingsWidget(Dawn &dawn, QWidget *parent)
   QVBoxLayout *layout = new QVBoxLayout();
   layout->setContentsMargins(0,0,0,0);
   layout->setSpacing(1);
+  LogMessage msg(LOG_DEBUG);
+  msg << "Show " << dawn.numAlarms() << " alarm settings.";
+  Logger::get().log(msg);
   for (size_t i=0; i<dawn.numAlarms(); i++) {
     layout->addWidget(new AlarmSettingWidget(_dawn, i));
   }

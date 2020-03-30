@@ -26,9 +26,12 @@ int main(int argc, char *argv[])
 
   QSettings settings("hmatuschek.github.io", "dawn");
 
-  Dawn *dawn = 0;
+  Logger::get().addHandler(new StreamLogHandler(LOG_DEBUG, std::cerr));
+
+  Dawn *dawn = nullptr;
   QString name, systemLocation;
   QByteArray secret;
+
   // Let the user select an interfact to the device:
   while (true) {
     DeviceDialog dialog(settings);
@@ -79,6 +82,12 @@ int main(int argc, char *argv[])
       Logger::get().log(msg);
       goto error;
     }
+    if (! port->setDataTerminalReady(true)) {
+      LogMessage msg(LOG_ERROR);
+      msg << "IO: Can not set DTR.";
+      Logger::get().log(msg);
+      goto error;
+    }
 
     dawn = new Dawn(port, (const uint8_t *)secret.constData());
 
@@ -93,7 +102,7 @@ error:
         delete dawn;
       else
         delete port;
-      dawn = 0;
+      dawn = nullptr;
   }
 
   // Create main window

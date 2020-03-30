@@ -220,16 +220,13 @@ int main(int argc, char *argv[])
 
     bool success = false;
     double core, amb;
-    for (int i=0; (i<5)&&(!success); i++)
+    for (int i=0; ((i<5)&&(!success)); i++) {
       success = dawn->getTemp(core, amb);
-    if (!success)
-      return -1;
+    }
 
     QDateTime time = dawn->time(&success);
     for (int i=0; (i<5)&&(!success); i++)
       time = dawn->time(&success);
-    if (!success)
-      return -1;
 
     std::cout << "Device info for '" << parser.get_values("devname").front() << "'" << std::endl
               << " temperature (core/amb): " << core << "/" << amb << std::endl
